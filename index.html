@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FallByte - Media Optimization Tool</title>
+  <style>
+    :root {
+      --bg-color: #030712;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+
+      --card-bg: rgba(15, 23, 42, 0.65);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover-bg: rgba(30, 41, 59, 0.85);
+      --card-hover-border: rgba(255, 255, 255, 0.22);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 100vh;
+      text-align: center;
+      padding: 40px 24px 24px 24px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Aura de iluminação sutil ao fundo */
+    body::before {
+      content: "";
+      position: absolute;
+      top: 25%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 350px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      width: 100%;
+      max-width: 680px;
+      z-index: 1;
+    }
+
+    h1 {
+      font-size: 5rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin-bottom: 1rem;
+      color: #ffffff;
+      line-height: 1;
+    }
+
+    p.subtitle {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      font-weight: 400;
+      line-height: 1.6;
+      max-width: 580px;
+      margin-bottom: 2.5rem;
+    }
+
+    .downloads-section {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .downloads-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: #64748b;
+      margin-bottom: 1rem;
+    }
+
+    .download-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 1.5rem;
+    }
+
+    .download-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 22px 18px;
+      border-radius: 16px;
+      text-decoration: none;
+      color: #ffffff;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+
+    .download-card:hover {
+      transform: translateY(-3px);
+      background: var(--card-hover-bg);
+      border-color: var(--card-hover-border);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .download-card img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+    }
+
+    .download-card span {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    /* Badge posicionada abaixo dos cards */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 99px;
+      font-size: 0.85rem;
+      color: #38bdf8;
+      backdrop-filter: blur(8px);
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      background-color: #38bdf8;
+      border-radius: 50%;
+    }
+
+    /* Estilos do Modal de Escolha do Linux */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(3, 7, 18, 0.75);
+      backdrop-filter: blur(16px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease-in-out;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-container {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      width: 100%;
+      max-width: 440px;
+      padding: 28px 24px;
+      position: relative;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+      transform: translateY(12px) scale(0.96);
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      text-align: left;
+    }
+
+    .modal-overlay.active .modal-container {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .modal-header h3 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.5rem;
+      line-height: 1;
+      padding: 4px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close-btn:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .modal-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    .option-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .option-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-radius: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: #ffffff;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .option-btn:hover {
+      background: var(--card-hover-bg);
+      border-color: var(--card-hover-border);
+      transform: translateX(3px);
+    }
+
+    .option-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .option-title {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .option-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .option-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.1);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+
+    footer {
+      z-index: 1;
+      margin-top: 3rem;
+      font-size: 0.9rem;
+      color: #64748b;
+    }
+
+    footer a {
+      color: #94a3b8;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s ease;
+      font-weight: 500;
+    }
+
+    footer a:hover {
+      color: #f8fafc;
+    }
+
+    footer svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    @media (max-width: 520px) {
+      h1 {
+        font-size: 3.5rem;
+      }
+
+      .download-cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="main-content">
+    <h1>FallByte</h1>
+    <p class="subtitle">
+      Otimize vídeos e imagens localmente com máxima performance. Sem upload na nuvem, sem limites e com privacidade
+      total.
+    </p>
+
+    <section class="downloads-section">
+      <div class="downloads-title">Downloads Disponíveis</div>
+      <div class="download-cards">
+        <!-- Card Windows -->
+        <a id="btn-windows" href="#" class="download-card">
+          <img id="icon-windows" src="" alt="Windows Logo" />
+          <span id="label-windows">Windows</span>
+        </a>
+
+        <!-- Card Linux (Gera a Abertura do Modal) -->
+        <div class="download-card" id="open-linux-modal">
+          <img id="icon-linux" src="" alt="Linux Logo" />
+          <span id="label-linux">Linux</span>
+        </div>
+      </div>
+
+      <!-- Badge de Versão -->
+      <div class="badge">
+        <span class="badge-dot"></span>
+        <span>Open Source</span>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal de Seleção do Formato Linux -->
+  <div class="modal-overlay" id="linux-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Selecione o Formato</h3>
+        <button class="modal-close-btn" id="close-linux-modal" aria-label="Fechar Modal">&times;</button>
+      </div>
+      <p class="modal-subtitle">Escolha o pacote ideal para a sua distribuição Linux:</p>
+
+      <div class="option-list">
+        <!-- .DEB -->
+        <a id="btn-deb" href="#" class="option-btn">
+          <div class="option-info">
+            <span class="option-title">Pacote Debian / Ubuntu</span>
+            <span class="option-desc">Ubuntu, Debian, Pop!_OS, Linux Mint</span>
+          </div>
+          <span class="option-tag">.DEB</span>
+        </a>
+
+        <!-- .RPM -->
+        <a id="btn-rpm" href="#" class="option-btn">
+          <div class="option-info">
+            <span class="option-title">Pacote Fedora / RedHat</span>
+            <span class="option-desc">Fedora, RHEL, openSUSE, Rocky Linux</span>
+          </div>
+          <span class="option-tag">.RPM</span>
+        </a>
+
+        <!-- .AppImage -->
+        <a id="btn-appimage" href="#" class="option-btn">
+          <div class="option-info">
+            <span class="option-title">Executável Portátil</span>
+            <span class="option-desc">Arch, Manjaro, SteamDeck e Outras Distros</span>
+          </div>
+          <span class="option-tag">.AppImage</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <a href="https://github.com/brunothinker/FallByte" target="_blank" rel="noopener noreferrer">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+      </svg>
+      github.com/brunothinker/FallByte
+    </a>
+  </footer>
+
+  <script>
+    // =========================================================
+    // CONFIGURAÇÃO CENTRALIZADA (Edite aqui)
+    // =========================================================
+    const CONFIG = {
+      icons: {
+        windows: "icons/windows.svg",
+        linux: "icons/tux.svg"
+      },
+      labels: {
+        windows: "Windows v1.0.0",
+        linux: "Linux v1.2.0"
+      },
+      urls: {
+        windows: "https://github.com/brunothinker/FallByte/releases/download/v1.0.0/fallbyte_1.0.0_x86_64_setup.exe",
+        deb: "https://github.com/brunothinker/FallByte/releases/download/v1.2.0/fallbyte_1.2.0_amd64.deb",
+        rpm: "https://github.com/brunothinker/FallByte/releases/download/v1.2.0/fallbyte_1.2.0_x86_64.rpm",
+        appImage: "https://github.com/brunothinker/FallByte/releases/download/v1.2.0/fallbyte_1.2.0_x86_64.AppImage"
+      }
+    };
+
+    // =========================================================
+    // APLICAÇÃO DAS VARIÁVEIS NA PÁGINA
+    // =========================================================
+    document.getElementById('icon-windows').src = CONFIG.icons.windows;
+    document.getElementById('icon-linux').src = CONFIG.icons.linux;
+
+    document.getElementById('label-windows').textContent = CONFIG.labels.windows;
+    document.getElementById('label-linux').textContent = CONFIG.labels.linux;
+
+    document.getElementById('btn-windows').href = CONFIG.urls.windows;
+    document.getElementById('btn-deb').href = CONFIG.urls.deb;
+    document.getElementById('btn-rpm').href = CONFIG.urls.rpm;
+    document.getElementById('btn-appimage').href = CONFIG.urls.appImage;
+
+    // =========================================================
+    // LÓGICA DO MODAL LINUX
+    // =========================================================
+    const openModalBtn = document.getElementById('open-linux-modal');
+    const closeModalBtn = document.getElementById('close-linux-modal');
+    const modalOverlay = document.getElementById('linux-modal');
+
+    // Abre o Modal
+    openModalBtn.addEventListener('click', () => {
+      modalOverlay.classList.add('active');
+    });
+
+    // Fechar pelo botão X
+    closeModalBtn.addEventListener('click', () => {
+      modalOverlay.classList.remove('active');
+    });
+
+    // Fechar ao clicar na área escura fora do container
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        modalOverlay.classList.remove('active');
+      }
+    });
+
+    // Fechar ao pressionar a tecla Esc
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+        modalOverlay.classList.remove('active');
+      }
+    });
+  </script>
+
+</body>
+
+</html>
