@@ -141,7 +141,14 @@
                   <div class="guide-block">
                     <h4>Option 2: Terminal (Download &amp; Install)</h4>
                     <div class="code-box">
-                      <button type="button" class="copy-btn" data-copy-target="cmd-deb">Copy</button>
+                      <button type="button" class="copy-btn" data-copy-target="cmd-deb" title="Copy command"
+                        aria-label="Copy command">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                          stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                      </button>
                       <pre><code id="cmd-deb">sudo apt update &amp;&amp; sudo apt install -y curl
 curl -fL https://github.com/brunothinker/FallByte/releases/download/v2.1.0/fallbyte_2.1.0_amd64.deb -o /tmp/fallbyte_2.1.0_amd64.deb
 sudo apt install -y /tmp/fallbyte_2.1.0_amd64.deb &amp;&amp; rm -f /tmp/fallbyte_2.1.0_amd64.deb</code></pre>
@@ -203,7 +210,14 @@ sudo apt install -y /tmp/fallbyte_2.1.0_amd64.deb &amp;&amp; rm -f /tmp/fallbyte
                   <div class="guide-block">
                     <h4>Option 2: Terminal (Download &amp; Install)</h4>
                     <div class="code-box">
-                      <button type="button" class="copy-btn" data-copy-target="cmd-rpm">Copy</button>
+                      <button type="button" class="copy-btn" data-copy-target="cmd-rpm" title="Copy command"
+                        aria-label="Copy command">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                          stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                      </button>
                       <pre><code id="cmd-rpm">sudo dnf check-update; sudo dnf install -y curl
 curl -fL https://github.com/brunothinker/FallByte/releases/download/v2.1.0/fallbyte_2.1.0_x86_64.rpm -o /tmp/fallbyte_2.1.0_x86_64.rpm
 sudo dnf install -y /tmp/fallbyte_2.1.0_x86_64.rpm &amp;&amp; rm -f /tmp/fallbyte_2.1.0_x86_64.rpm</code></pre>
@@ -263,7 +277,14 @@ sudo dnf install -y /tmp/fallbyte_2.1.0_x86_64.rpm &amp;&amp; rm -f /tmp/fallbyt
                   <div class="guide-block">
                     <h4>Option 2: Terminal (Download &amp; Run)</h4>
                     <div class="code-box">
-                      <button type="button" class="copy-btn" data-copy-target="cmd-appimage">Copy</button>
+                      <button type="button" class="copy-btn" data-copy-target="cmd-appimage" title="Copy command"
+                        aria-label="Copy command">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                          stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                      </button>
                       <pre><code id="cmd-appimage"># Make sure curl is installed (e.g., sudo pacman -Syu --needed curl)
 curl -fLO https://github.com/brunothinker/FallByte/releases/download/v2.1.0/fallbyte_2.1.0_x86_64.AppImage
 chmod +x fallbyte_2.1.0_x86_64.AppImage
