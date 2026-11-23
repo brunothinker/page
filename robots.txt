@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://fallbyte.brunothinker.workers.dev/sitemap.xml

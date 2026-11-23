@@ -3,6 +3,14 @@
 // =========================================================
 document.getElementById('version-badge').textContent = `v${CONFIG.version} • Open Source`;
 
+const schemaEl = document.getElementById('schema-software');
+if (schemaEl) {
+    const schema = JSON.parse(schemaEl.textContent);
+    schema.softwareVersion = CONFIG.version;
+    schema.downloadUrl = `https://github.com/${CONFIG.repoOwner}/${CONFIG.repoName}/releases/tag/v${CONFIG.version}`;
+    schemaEl.textContent = JSON.stringify(schema);
+}
+
 Object.entries(CONFIG.icons).forEach(([key, path]) => {
     document.querySelectorAll(`[data-icon="${key}"]`).forEach(img => {
         img.src = path;
