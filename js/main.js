@@ -1,13 +1,27 @@
 // =========================================================
+// 0. FILE:// PROTOCOL FALLBACK FOR NAVIGATION LINKS
+// =========================================================
+if (window.location.protocol === 'file:') {
+    const navDownloads = document.getElementById('nav-downloads');
+    if (navDownloads) navDownloads.href = 'downloads/index.html';
+
+    const navHome = document.getElementById('nav-home');
+    if (navHome) navHome.href = '../index.html';
+}
+
+// =========================================================
 // 1. POPULATE VERSION, ICONS, LINKS & DYNAMIC COMMANDS
 // =========================================================
-document.getElementById('version-badge').textContent = `v${CONFIG.version} • Open Source`;
+const versionBadge = document.getElementById('version-badge');
+if (versionBadge) {
+    versionBadge.textContent = `v${CONFIG.version} • Open Source`;
+}
 
 const schemaEl = document.getElementById('schema-software');
 if (schemaEl) {
     const schema = JSON.parse(schemaEl.textContent);
-    schema.softwareVersion = CONFIG.version;
-    schema.downloadUrl = `https://github.com/${CONFIG.repoOwner}/${CONFIG.repoName}/releases/tag/v${CONFIG.version}`;
+    const appNode = schema['@graph']?.find(item => item['@type'] === 'SoftwareApplication') || schema;
+    appNode.softwareVersion = CONFIG.version;
     schemaEl.textContent = JSON.stringify(schema);
 }
 
@@ -17,15 +31,27 @@ Object.entries(CONFIG.icons).forEach(([key, path]) => {
     });
 });
 
-document.getElementById('label-windows').textContent = CONFIG.labels.windows;
-document.getElementById('label-deb').textContent = CONFIG.labels.deb;
-document.getElementById('label-rpm').textContent = CONFIG.labels.rpm;
-document.getElementById('label-appimage').textContent = CONFIG.labels.appImage;
+const labelMap = {
+    'label-windows': CONFIG.labels.windows,
+    'label-deb': CONFIG.labels.deb,
+    'label-rpm': CONFIG.labels.rpm,
+    'label-appimage': CONFIG.labels.appImage
+};
+Object.entries(labelMap).forEach(([id, text]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+});
 
-document.getElementById('btn-windows').href = CONFIG.urls.windows;
-document.getElementById('btn-deb').href = CONFIG.urls.deb;
-document.getElementById('btn-rpm').href = CONFIG.urls.rpm;
-document.getElementById('btn-appimage').href = CONFIG.urls.appImage;
+const urlMap = {
+    'btn-windows': CONFIG.urls.windows,
+    'btn-deb': CONFIG.urls.deb,
+    'btn-rpm': CONFIG.urls.rpm,
+    'btn-appimage': CONFIG.urls.appImage
+};
+Object.entries(urlMap).forEach(([id, href]) => {
+    const el = document.getElementById(id);
+    if (el) el.href = href;
+});
 
 // Keep filenames and terminal install commands synced with CONFIG.version
 document.querySelectorAll('[data-filename]').forEach(el => {
@@ -80,44 +106,48 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
 // 2. GITHUB LIVE METRICS (VERSION DOWNLOADS & REPO STARS)
 // =========================================================
 async function loadGitHubStats() {
+    const badge = document.getElementById('downloads-badge');
+    const pill = document.getElementById('github-stars');
+    if (!badge && !pill) return;
+
     const apiBase = `https://api.github.com/repos/${CONFIG.repoOwner}/${CONFIG.repoName}`;
 
-    try {
-        const releaseRes = await fetch(`${apiBase}/releases/tags/v${CONFIG.version}`);
-        if (releaseRes.ok) {
-            const releaseData = await releaseRes.json();
-            const totalDownloads = (releaseData.assets || []).reduce(
-                (sum, asset) => sum + (asset.download_count || 0),
-                0
-            );
+    if (badge) {
+        try {
+            const releaseRes = await fetch(`${apiBase}/releases/tags/v${CONFIG.version}`);
+            if (releaseRes.ok) {
+                const releaseData = await releaseRes.json();
+                const totalDownloads = (releaseData.assets || []).reduce(
+                    (sum, asset) => sum + (asset.download_count || 0),
+                    0
+                );
 
-            const badge = document.getElementById('downloads-badge');
-            const label = document.getElementById('version-downloads-count');
-            if (badge && label) {
-                const formatted = totalDownloads.toLocaleString('en-US');
-                label.textContent = `${formatted} ${totalDownloads === 1 ? 'download' : 'downloads'} (v${CONFIG.version})`;
-                badge.hidden = false;
+                const label = document.getElementById('version-downloads-count');
+                if (label) {
+                    const formatted = totalDownloads.toLocaleString('en-US');
+                    label.textContent = `${formatted} ${totalDownloads === 1 ? 'download' : 'downloads'} (v${CONFIG.version})`;
+                    badge.hidden = false;
+                }
             }
+        } catch {
+            // Silently keep badge hidden if rate-limited or offline
         }
-    } catch {
-        // Silently keep badge hidden if rate-limited or offline
     }
 
-    try {
-        const repoRes = await fetch(apiBase);
-        if (repoRes.ok) {
-            const repoData = await repoRes.json();
-            const stars = repoData.stargazers_count;
-            if (typeof stars === 'number') {
-                const pill = document.getElementById('github-stars');
-                if (pill) {
+    if (pill) {
+        try {
+            const repoRes = await fetch(apiBase);
+            if (repoRes.ok) {
+                const repoData = await repoRes.json();
+                const stars = repoData.stargazers_count;
+                if (typeof stars === 'number') {
                     pill.textContent = `★ ${stars.toLocaleString('en-US')}`;
                     pill.hidden = false;
                 }
             }
+        } catch {
+            // Ignore network errors
         }
-    } catch {
-        // Ignore network errors
     }
 }
 
@@ -132,10 +162,10 @@ const thumbsContainer = document.getElementById('screenshot-thumbs');
 
 function setScreenshot(index) {
     const item = CONFIG.screenshots[index];
-    if (!item) return;
+    if (!item || !screenshotImg) return;
 
     screenshotImg.style.display = 'block';
-    screenshotPlaceholder.style.display = 'none';
+    if (screenshotPlaceholder) screenshotPlaceholder.style.display = 'none';
     screenshotImg.src = item.src;
     screenshotImg.alt = item.label;
 
@@ -144,23 +174,25 @@ function setScreenshot(index) {
     });
 }
 
-screenshotImg.addEventListener('error', () => {
-    screenshotImg.style.display = 'none';
-    screenshotPlaceholder.style.display = 'block';
-});
+if (screenshotImg) {
+    screenshotImg.addEventListener('error', () => {
+        screenshotImg.style.display = 'none';
+        if (screenshotPlaceholder) screenshotPlaceholder.style.display = 'block';
+    });
 
-if (CONFIG.screenshots.length > 0) {
-    setScreenshot(0);
+    if (CONFIG.screenshots.length > 0) {
+        setScreenshot(0);
 
-    if (CONFIG.screenshots.length > 1) {
-        CONFIG.screenshots.forEach((shot, index) => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = `thumb-btn ${index === 0 ? 'active' : ''}`;
-            btn.textContent = shot.label;
-            btn.addEventListener('click', () => setScreenshot(index));
-            thumbsContainer.appendChild(btn);
-        });
+        if (CONFIG.screenshots.length > 1 && thumbsContainer) {
+            CONFIG.screenshots.forEach((shot, index) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `thumb-btn ${index === 0 ? 'active' : ''}`;
+                btn.textContent = shot.label;
+                btn.addEventListener('click', () => setScreenshot(index));
+                thumbsContainer.appendChild(btn);
+            });
+        }
     }
 }
 
@@ -196,10 +228,14 @@ function detectUserOS() {
 }
 
 const detectedOS = detectUserOS();
-if (detectedOS) {
+if (detectedOS && accordionItems.length > 0) {
     const targetItem = document.querySelector(`.accordion-item[data-os="${detectedOS}"]`);
     if (targetItem) {
         const tag = targetItem.querySelector('.recommended-tag');
         if (tag) tag.hidden = false;
+
+        // Auto-expand the detected OS drawer on the dedicated /downloads/ page
+        targetItem.classList.add('open');
+        targetItem.querySelector('.accordion-header').setAttribute('aria-expanded', 'true');
     }
 }

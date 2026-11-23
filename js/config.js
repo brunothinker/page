@@ -2,6 +2,7 @@ const VERSION = "2.1.0";
 const REPO_OWNER = "brunothinker";
 const REPO_NAME = "FallByte";
 const REPO_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}`;
+const BASE_PATH = window.location.pathname.includes('/downloads') ? '..' : '.';
 
 const FILES = {
     windows: `fallbyte_${VERSION}_x64_installer.exe`,
@@ -17,15 +18,15 @@ const CONFIG = {
     repoUrl: REPO_URL,
     files: FILES,
     icons: {
-        windows: "icons/windows.svg",
-        linux: "icons/tux.svg",
-        ubuntu: "icons/ubuntu.svg",
-        fedora: "icons/fedora.svg",
-        arch: "icons/arch.svg"
+        windows: `${BASE_PATH}/icons/windows.svg`,
+        linux: `${BASE_PATH}/icons/tux.svg`,
+        ubuntu: `${BASE_PATH}/icons/ubuntu.svg`,
+        fedora: `${BASE_PATH}/icons/fedora.svg`,
+        arch: `${BASE_PATH}/icons/arch.svg`
     },
     // Add as many screenshots as you want; if more than 1, tabs will appear below
     screenshots: [
-        { label: "Main Interface", src: "screenshots/preview.png" }
+        { label: "Main Interface", src: `${BASE_PATH}/screenshots/preview.png` }
     ],
     labels: {
         windows: `Download Windows Installer (v${VERSION})`,

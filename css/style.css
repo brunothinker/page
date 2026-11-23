@@ -310,9 +310,27 @@ p.subtitle {
   z-index: 1;
 }
 
+.subpage-nav {
+  margin-bottom: 1.5rem;
+}
+
+.back-home-btn {
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
 .section-header {
   text-align: left;
   margin-bottom: 1.5rem;
+}
+
+.section-header h1 {
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  margin-bottom: 0.35rem;
 }
 
 .section-header h2 {
@@ -681,29 +699,22 @@ p.subtitle {
    ========================================================= */
 footer {
   z-index: 1;
-  margin-top: 2.5rem;
-  font-size: 0.9rem;
-  color: #64748b;
+  margin-top: auto;
+  padding-top: 2.5rem;
+  font-size: 0.85rem;
+  color: #475569;
+  letter-spacing: 0.01em;
 }
 
 footer a {
-  color: #94a3b8;
+  color: #64748b;
   text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  font-weight: 600;
   transition: color 0.2s ease;
-  font-weight: 500;
 }
 
 footer a:hover {
-  color: #f8fafc;
-}
-
-footer svg {
-  width: 16px;
-  height: 16px;
-  fill: currentColor;
+  color: var(--accent);
 }
 
 @media (max-width: 600px) {
