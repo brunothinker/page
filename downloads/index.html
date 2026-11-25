@@ -23,7 +23,7 @@
     <link rel="stylesheet" href="../css/style.css" />
 </head>
 
-<body>
+<body data-page="downloads">
     <div class="ambient-glow" aria-hidden="true"></div>
 
     <!-- DOWNLOADS PAGE -->
@@ -35,14 +35,33 @@
                     <line x1="19" y1="12" x2="5" y2="12" />
                     <polyline points="12 19 5 12 12 5" />
                 </svg>
-                <span>Back to Home</span>
+                <span data-i18n="downloads.back_home"></span>
             </a>
+
+            <div class="lang-switcher" id="lang-switcher">
+                <button type="button" class="lang-toggle" id="lang-toggle" aria-haspopup="listbox" aria-expanded="false"
+                    aria-label="Language">
+                    <svg class="globe-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                        </path>
+                    </svg>
+                    <span id="lang-current-code">EN</span>
+                    <svg class="chevron-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+                <div class="lang-menu" id="lang-menu" role="listbox"></div>
+            </div>
         </nav>
 
         <div class="section-header">
-            <h1>Downloads</h1>
-            <p>Select your operating system to download the latest release (<span id="version-badge">v2.1.0 &bull; Open
-                    Source</span>) and view installation steps.</p>
+            <h1 data-i18n="downloads.title"></h1>
+            <p data-i18n-html="downloads.subtitle"></p>
         </div>
 
         <div class="accordion-list">
@@ -53,10 +72,10 @@
                         <img class="os-icon" data-icon="ubuntu" src="" alt="Ubuntu / Debian" />
                         <div class="os-text">
                             <div class="os-title-row">
-                                <span class="os-title">Ubuntu / Debian</span>
-                                <span class="recommended-tag" hidden>FOR YOU</span>
+                                <span class="os-title" data-i18n="downloads.os.debian_title"></span>
+                                <span class="recommended-tag" hidden data-i18n="common.for_you"></span>
                             </div>
-                            <span class="os-desc">Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)</span>
+                            <span class="os-desc" data-i18n="downloads.os.debian_desc"></span>
                         </div>
                     </div>
                     <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -74,31 +93,26 @@
                                 <polyline points="7 10 12 15 17 10" />
                                 <line x1="12" y1="15" x2="12" y2="3" />
                             </svg>
-                            <span id="label-deb">Download (.deb) package</span>
+                            <span id="label-deb"></span>
                         </a>
 
                         <div class="tutorial-slot">
                             <div class="install-guide">
                                 <div class="guide-grid">
                                     <div class="guide-block">
-                                        <h4>Option 1: Graphical Software Center</h4>
+                                        <h4 data-i18n="downloads.guides.opt1_gui"></h4>
                                         <ol>
-                                            <li>Download the <code>.deb</code> package using the button above.</li>
-                                            <li>Open your file manager, navigate to <strong>Downloads</strong>, and
-                                                double-click <code data-filename="deb">fallbyte_2.1.0_amd64.deb</code>.
-                                            </li>
-                                            <li>Your system's Software Center (App Center / GDebi) will open
-                                                automatically &mdash; click
-                                                <strong>Install</strong> and enter your password.
-                                            </li>
+                                            <li data-i18n-html="downloads.guides.deb_step1"></li>
+                                            <li data-i18n-html="downloads.guides.deb_step2" data-os-file="deb"></li>
+                                            <li data-i18n-html="downloads.guides.deb_step3"></li>
                                         </ol>
                                     </div>
 
                                     <div class="guide-block">
-                                        <h4>Option 2: Terminal (Download &amp; Install)</h4>
+                                        <h4 data-i18n="downloads.guides.opt2_terminal"></h4>
                                         <div class="code-box">
                                             <button type="button" class="copy-btn" data-copy-target="cmd-deb"
-                                                title="Copy command" aria-label="Copy command">
+                                                data-i18n-title="common.copy_command" aria-label="Copy command">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -106,9 +120,7 @@
                                                     </path>
                                                 </svg>
                                             </button>
-                                            <pre><code id="cmd-deb">sudo apt update &amp;&amp; sudo apt install -y curl
-curl -fL https://github.com/brunothinker/FallByte/releases/download/v2.1.0/fallbyte_2.1.0_amd64.deb -o /tmp/fallbyte_2.1.0_amd64.deb
-sudo apt install -y /tmp/fallbyte_2.1.0_amd64.deb &amp;&amp; rm -f /tmp/fallbyte_2.1.0_amd64.deb</code></pre>
+                                            <pre><code id="cmd-deb"></code></pre>
                                         </div>
                                     </div>
                                 </div>
@@ -125,10 +137,10 @@ sudo apt install -y /tmp/fallbyte_2.1.0_amd64.deb &amp;&amp; rm -f /tmp/fallbyte
                         <img class="os-icon" data-icon="fedora" src="" alt="Fedora / RedHat" />
                         <div class="os-text">
                             <div class="os-title-row">
-                                <span class="os-title">Fedora / RedHat</span>
-                                <span class="recommended-tag" hidden>FOR YOU</span>
+                                <span class="os-title" data-i18n="downloads.os.fedora_title"></span>
+                                <span class="recommended-tag" hidden data-i18n="common.for_you"></span>
                             </div>
-                            <span class="os-desc">Fedora, RHEL, openSUSE, Rocky Linux (.RPM)</span>
+                            <span class="os-desc" data-i18n="downloads.os.fedora_desc"></span>
                         </div>
                     </div>
                     <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -146,30 +158,26 @@ sudo apt install -y /tmp/fallbyte_2.1.0_amd64.deb &amp;&amp; rm -f /tmp/fallbyte
                                 <polyline points="7 10 12 15 17 10" />
                                 <line x1="12" y1="15" x2="12" y2="3" />
                             </svg>
-                            <span id="label-rpm">Download (.rpm) package</span>
+                            <span id="label-rpm"></span>
                         </a>
 
                         <div class="tutorial-slot">
                             <div class="install-guide">
                                 <div class="guide-grid">
                                     <div class="guide-block">
-                                        <h4>Option 1: Graphical Software Center</h4>
+                                        <h4 data-i18n="downloads.guides.opt1_gui"></h4>
                                         <ol>
-                                            <li>Download the <code>.rpm</code> package using the button above.</li>
-                                            <li>Open <strong>Files</strong>, go to <strong>Downloads</strong>, and
-                                                double-click <code data-filename="rpm">fallbyte_2.1.0_x86_64.rpm</code>.
-                                            </li>
-                                            <li>GNOME Software / KDE Discover will open the package page &mdash; click
-                                                <strong>Install</strong> to complete setup.
-                                            </li>
+                                            <li data-i18n-html="downloads.guides.rpm_step1"></li>
+                                            <li data-i18n-html="downloads.guides.rpm_step2" data-os-file="rpm"></li>
+                                            <li data-i18n-html="downloads.guides.rpm_step3"></li>
                                         </ol>
                                     </div>
 
                                     <div class="guide-block">
-                                        <h4>Option 2: Terminal (Download &amp; Install)</h4>
+                                        <h4 data-i18n="downloads.guides.opt2_terminal"></h4>
                                         <div class="code-box">
                                             <button type="button" class="copy-btn" data-copy-target="cmd-rpm"
-                                                title="Copy command" aria-label="Copy command">
+                                                data-i18n-title="common.copy_command" aria-label="Copy command">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -177,9 +185,7 @@ sudo apt install -y /tmp/fallbyte_2.1.0_amd64.deb &amp;&amp; rm -f /tmp/fallbyte
                                                     </path>
                                                 </svg>
                                             </button>
-                                            <pre><code id="cmd-rpm">sudo dnf check-update; sudo dnf install -y curl
-curl -fL https://github.com/brunothinker/FallByte/releases/download/v2.1.0/fallbyte_2.1.0_x86_64.rpm -o /tmp/fallbyte_2.1.0_x86_64.rpm
-sudo dnf install -y /tmp/fallbyte_2.1.0_x86_64.rpm &amp;&amp; rm -f /tmp/fallbyte_2.1.0_x86_64.rpm</code></pre>
+                                            <pre><code id="cmd-rpm"></code></pre>
                                         </div>
                                     </div>
                                 </div>
@@ -196,10 +202,10 @@ sudo dnf install -y /tmp/fallbyte_2.1.0_x86_64.rpm &amp;&amp; rm -f /tmp/fallbyt
                         <img class="os-icon" data-icon="arch" src="" alt="Portable Linux" />
                         <div class="os-text">
                             <div class="os-title-row">
-                                <span class="os-title">Portable Linux</span>
-                                <span class="recommended-tag" hidden>FOR YOU</span>
+                                <span class="os-title" data-i18n="downloads.os.appimage_title"></span>
+                                <span class="recommended-tag" hidden data-i18n="common.for_you"></span>
                             </div>
-                            <span class="os-desc">Arch, Manjaro, SteamOS, and other distros (.AppImage)</span>
+                            <span class="os-desc" data-i18n="downloads.os.appimage_desc"></span>
                         </div>
                     </div>
                     <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -217,30 +223,27 @@ sudo dnf install -y /tmp/fallbyte_2.1.0_x86_64.rpm &amp;&amp; rm -f /tmp/fallbyt
                                 <polyline points="7 10 12 15 17 10" />
                                 <line x1="12" y1="15" x2="12" y2="3" />
                             </svg>
-                            <span id="label-appimage">Download (.AppImage) binary</span>
+                            <span id="label-appimage"></span>
                         </a>
 
                         <div class="tutorial-slot">
                             <div class="install-guide">
                                 <div class="guide-grid">
                                     <div class="guide-block">
-                                        <h4>Option 1: File Manager (No Installation Needed)</h4>
+                                        <h4 data-i18n="downloads.guides.opt1_file_manager"></h4>
                                         <ol>
-                                            <li>Download <code
-                                                    data-filename="appimage">fallbyte_2.1.0_x86_64.AppImage</code>.</li>
-                                            <li>Right-click the file &rarr; <strong>Properties</strong> &rarr;
-                                                <strong>Permissions</strong>
-                                                and enable <em>Allow executing file as program</em>.
-                                            </li>
-                                            <li>Double-click the AppImage file to run FallByte immediately.</li>
+                                            <li data-i18n-html="downloads.guides.appimage_step1"
+                                                data-os-file="appImage"></li>
+                                            <li data-i18n-html="downloads.guides.appimage_step2"></li>
+                                            <li data-i18n-html="downloads.guides.appimage_step3"></li>
                                         </ol>
                                     </div>
 
                                     <div class="guide-block">
-                                        <h4>Option 2: Terminal (Download &amp; Run)</h4>
+                                        <h4 data-i18n="downloads.guides.opt2_terminal_run"></h4>
                                         <div class="code-box">
                                             <button type="button" class="copy-btn" data-copy-target="cmd-appimage"
-                                                title="Copy command" aria-label="Copy command">
+                                                data-i18n-title="common.copy_command" aria-label="Copy command">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -248,10 +251,7 @@ sudo dnf install -y /tmp/fallbyte_2.1.0_x86_64.rpm &amp;&amp; rm -f /tmp/fallbyt
                                                     </path>
                                                 </svg>
                                             </button>
-                                            <pre><code id="cmd-appimage"># Make sure curl is installed (e.g., sudo pacman -Syu --needed curl)
-curl -fLO https://github.com/brunothinker/FallByte/releases/download/v2.1.0/fallbyte_2.1.0_x86_64.AppImage
-chmod +x fallbyte_2.1.0_x86_64.AppImage
-./fallbyte_2.1.0_x86_64.AppImage</code></pre>
+                                            <pre><code id="cmd-appimage"></code></pre>
                                         </div>
                                     </div>
                                 </div>
@@ -268,10 +268,10 @@ chmod +x fallbyte_2.1.0_x86_64.AppImage
                         <img class="os-icon" data-icon="windows" src="" alt="Windows" />
                         <div class="os-text">
                             <div class="os-title-row">
-                                <span class="os-title">Windows</span>
-                                <span class="recommended-tag" hidden>FOR YOU</span>
+                                <span class="os-title" data-i18n="downloads.os.windows_title"></span>
+                                <span class="recommended-tag" hidden data-i18n="common.for_you"></span>
                             </div>
-                            <span class="os-desc">Windows 10 and 11 (64-bit) &bull; Installer (.exe)</span>
+                            <span class="os-desc" data-i18n="downloads.os.windows_desc"></span>
                         </div>
                     </div>
                     <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -289,39 +289,23 @@ chmod +x fallbyte_2.1.0_x86_64.AppImage
                                 <polyline points="7 10 12 15 17 10" />
                                 <line x1="12" y1="15" x2="12" y2="3" />
                             </svg>
-                            <span id="label-windows">Download for Windows</span>
+                            <span id="label-windows"></span>
                         </a>
 
                         <div class="tutorial-slot">
                             <div class="install-guide">
                                 <div class="guide-block">
-                                    <h4>Quick Installation</h4>
+                                    <h4 data-i18n="downloads.guides.quick_install"></h4>
                                     <ol>
-                                        <li>Download and double-click <code
-                                                data-filename="windows">fallbyte_2.1.0_x64_installer.exe</code>
-                                            to launch the setup wizard.</li>
-                                        <li>Follow the on-screen prompts to finish installing FallByte.</li>
+                                        <li data-i18n-html="downloads.guides.win_step1" data-os-file="windows"></li>
+                                        <li data-i18n-html="downloads.guides.win_step2"></li>
                                     </ol>
                                 </div>
 
                                 <div class="smartscreen-notice">
-                                    <strong>Windows Smart App Control &amp; SmartScreen Notice</strong>
-                                    <p>
-                                        Because FallByte is a free, independent open-source project without a paid
-                                        commercial EV
-                                        Code-Signing certificate, Windows 11's <strong>Smart App Control</strong> may
-                                        block the installer
-                                        from running (or SmartScreen may show <em>"Windows protected your PC"</em>).
-                                    </p>
-                                    <p>
-                                        To proceed: if SmartScreen appears, click <strong>More info</strong> &rarr;
-                                        <strong>Run
-                                            anyway</strong>. If <strong>Smart App Control</strong> blocks it on Windows
-                                        11, open <strong>Smart
-                                            App Control
-                                            settings</strong> using the shortcut below and switch it to
-                                        <strong>Off</strong>.
-                                    </p>
+                                    <strong data-i18n="downloads.guides.smartscreen_title"></strong>
+                                    <p data-i18n-html="downloads.guides.smartscreen_p1"></p>
+                                    <p data-i18n-html="downloads.guides.smartscreen_p2"></p>
                                     <div style="margin-top: 12px;">
                                         <a href="windowsdefender://smartapp/" class="cta-secondary"
                                             style="padding: 9px 14px; border-radius: 10px; font-size: 0.85rem;">
@@ -330,7 +314,7 @@ chmod +x fallbyte_2.1.0_x86_64.AppImage
                                                 stroke-linejoin="round" aria-hidden="true">
                                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                                             </svg>
-                                            <span>Open Smart App Control Settings</span>
+                                            <span data-i18n="downloads.guides.smartscreen_btn"></span>
                                         </a>
                                     </div>
                                 </div>
@@ -343,11 +327,12 @@ chmod +x fallbyte_2.1.0_x86_64.AppImage
     </main>
 
     <footer>
-        <span>Built by <a href="https://github.com/brunothinker" target="_blank" rel="noopener noreferrer">Bruno
-                Thinker</a></span>
+        <span><span data-i18n="common.footer_built_by"></span> <a href="https://github.com/brunothinker" target="_blank"
+                rel="noopener noreferrer">Bruno Thinker</a></span>
     </footer>
 
     <script src="../js/config.js"></script>
+    <script src="../js/i18n.js"></script>
     <script src="../js/main.js"></script>
 
 </body>

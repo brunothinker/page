@@ -10,13 +10,8 @@ if (window.location.protocol === 'file:') {
 }
 
 // =========================================================
-// 1. POPULATE VERSION, ICONS, LINKS & DYNAMIC COMMANDS
+// 1. STATIC ASSETS, LINKS & DYNAMIC TRANSLATED CONTENT
 // =========================================================
-const versionBadge = document.getElementById('version-badge');
-if (versionBadge) {
-    versionBadge.textContent = `v${CONFIG.version} • Open Source`;
-}
-
 const schemaEl = document.getElementById('schema-software');
 if (schemaEl) {
     const schema = JSON.parse(schemaEl.textContent);
@@ -31,17 +26,6 @@ Object.entries(CONFIG.icons).forEach(([key, path]) => {
     });
 });
 
-const labelMap = {
-    'label-windows': CONFIG.labels.windows,
-    'label-deb': CONFIG.labels.deb,
-    'label-rpm': CONFIG.labels.rpm,
-    'label-appimage': CONFIG.labels.appImage
-};
-Object.entries(labelMap).forEach(([id, text]) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
-});
-
 const urlMap = {
     'btn-windows': CONFIG.urls.windows,
     'btn-deb': CONFIG.urls.deb,
@@ -53,27 +37,48 @@ Object.entries(urlMap).forEach(([id, href]) => {
     if (el) el.href = href;
 });
 
-// Keep filenames and terminal install commands synced with CONFIG.version
-document.querySelectorAll('[data-filename]').forEach(el => {
-    const key = el.getAttribute('data-filename');
-    if (CONFIG.files[key]) {
-        el.textContent = CONFIG.files[key];
+function renderTranslatedDynamicParts() {
+    const versionBadge = document.getElementById('version-badge');
+    if (versionBadge) {
+        versionBadge.textContent = I18N.t('common.version_badge', { version: CONFIG.version });
     }
-});
 
-const cmdDeb = document.getElementById('cmd-deb');
-if (cmdDeb) {
-    cmdDeb.textContent = `sudo apt update && sudo apt install -y curl\ncurl -fL ${CONFIG.urls.deb} -o /tmp/${CONFIG.files.deb}\nsudo apt install -y /tmp/${CONFIG.files.deb} && rm -f /tmp/${CONFIG.files.deb}`;
-}
+    const labelMap = {
+        'label-windows': I18N.t('downloads.labels.windows', { version: CONFIG.version }),
+        'label-deb': I18N.t('downloads.labels.deb', { version: CONFIG.version }),
+        'label-rpm': I18N.t('downloads.labels.rpm', { version: CONFIG.version }),
+        'label-appimage': I18N.t('downloads.labels.appimage', { version: CONFIG.version })
+    };
+    Object.entries(labelMap).forEach(([id, text]) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    });
 
-const cmdRpm = document.getElementById('cmd-rpm');
-if (cmdRpm) {
-    cmdRpm.textContent = `sudo dnf check-update; sudo dnf install -y curl\ncurl -fL ${CONFIG.urls.rpm} -o /tmp/${CONFIG.files.rpm}\nsudo dnf install -y /tmp/${CONFIG.files.rpm} && rm -f /tmp/${CONFIG.files.rpm}`;
-}
+    document.querySelectorAll('[data-filename]').forEach(el => {
+        const key = el.getAttribute('data-filename');
+        if (CONFIG.files[key]) {
+            el.textContent = CONFIG.files[key];
+        }
+    });
 
-const cmdAppImage = document.getElementById('cmd-appimage');
-if (cmdAppImage) {
-    cmdAppImage.textContent = `# Make sure curl is installed (e.g., sudo pacman -Syu --needed curl)\ncurl -fLO ${CONFIG.urls.appImage}\nchmod +x ${CONFIG.files.appImage}\n./${CONFIG.files.appImage}`;
+    const cmdDeb = document.getElementById('cmd-deb');
+    if (cmdDeb) {
+        cmdDeb.textContent = `sudo apt update && sudo apt install -y curl\ncurl -fL ${CONFIG.urls.deb} -o /tmp/${CONFIG.files.deb}\nsudo apt install -y /tmp/${CONFIG.files.deb} && rm -f /tmp/${CONFIG.files.deb}`;
+    }
+
+    const cmdRpm = document.getElementById('cmd-rpm');
+    if (cmdRpm) {
+        cmdRpm.textContent = `sudo dnf check-update; sudo dnf install -y curl\ncurl -fL ${CONFIG.urls.rpm} -o /tmp/${CONFIG.files.rpm}\nsudo dnf install -y /tmp/${CONFIG.files.rpm} && rm -f /tmp/${CONFIG.files.rpm}`;
+    }
+
+    const cmdAppImage = document.getElementById('cmd-appimage');
+    if (cmdAppImage) {
+        const comment = I18N.t('downloads.guides.appimage_curl_comment');
+        cmdAppImage.textContent = `${comment}\ncurl -fLO ${CONFIG.urls.appImage}\nchmod +x ${CONFIG.files.appImage}\n./${CONFIG.files.appImage}`;
+    }
+
+    updateDownloadsBadgeText();
+    renderScreenshotThumbs();
 }
 
 // Copy buttons for terminal commands
@@ -90,14 +95,14 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
             await navigator.clipboard.writeText(codeEl.textContent);
             btn.innerHTML = CHECK_ICON;
             btn.classList.add('copied');
-            btn.title = 'Copied!';
+            btn.title = I18N.t('common.copied');
             setTimeout(() => {
                 btn.innerHTML = COPY_ICON;
                 btn.classList.remove('copied');
-                btn.title = 'Copy command';
+                btn.title = I18N.t('common.copy_command');
             }, 1600);
         } catch {
-            btn.title = 'Failed to copy';
+            btn.title = I18N.t('common.copy_failed');
         }
     });
 });
@@ -105,6 +110,25 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
 // =========================================================
 // 2. GITHUB LIVE METRICS (VERSION DOWNLOADS & REPO STARS)
 // =========================================================
+let cachedTotalDownloads = null;
+
+function updateDownloadsBadgeText() {
+    const badge = document.getElementById('downloads-badge');
+    const label = document.getElementById('version-downloads-count');
+    if (!badge || !label || cachedTotalDownloads === null) return;
+
+    const formatted = cachedTotalDownloads.toLocaleString(I18N.getLang());
+    const key = cachedTotalDownloads === 1
+        ? 'hero.downloads_count_singular'
+        : 'hero.downloads_count_plural';
+
+    label.textContent = I18N.t(key, {
+        count: formatted,
+        version: CONFIG.version
+    });
+    badge.hidden = false;
+}
+
 async function loadGitHubStats() {
     const badge = document.getElementById('downloads-badge');
     const pill = document.getElementById('github-stars');
@@ -117,17 +141,11 @@ async function loadGitHubStats() {
             const releaseRes = await fetch(`${apiBase}/releases/tags/v${CONFIG.version}`);
             if (releaseRes.ok) {
                 const releaseData = await releaseRes.json();
-                const totalDownloads = (releaseData.assets || []).reduce(
+                cachedTotalDownloads = (releaseData.assets || []).reduce(
                     (sum, asset) => sum + (asset.download_count || 0),
                     0
                 );
-
-                const label = document.getElementById('version-downloads-count');
-                if (label) {
-                    const formatted = totalDownloads.toLocaleString('en-US');
-                    label.textContent = `${formatted} ${totalDownloads === 1 ? 'download' : 'downloads'} (v${CONFIG.version})`;
-                    badge.hidden = false;
-                }
+                updateDownloadsBadgeText();
             }
         } catch {
             // Silently keep badge hidden if rate-limited or offline
@@ -141,7 +159,7 @@ async function loadGitHubStats() {
                 const repoData = await repoRes.json();
                 const stars = repoData.stargazers_count;
                 if (typeof stars === 'number') {
-                    pill.textContent = `★ ${stars.toLocaleString('en-US')}`;
+                    pill.textContent = `★ ${stars.toLocaleString(I18N.getLang())}`;
                     pill.hidden = false;
                 }
             }
@@ -151,44 +169,42 @@ async function loadGitHubStats() {
     }
 }
 
-loadGitHubStats();
-
 // =========================================================
 // 3. APP SCREENSHOT SHOWCASE
 // =========================================================
 const screenshotImg = document.getElementById('app-screenshot');
 const screenshotPlaceholder = document.getElementById('screenshot-placeholder');
 const thumbsContainer = document.getElementById('screenshot-thumbs');
+let activeScreenshotIndex = 0;
 
 function setScreenshot(index) {
     const item = CONFIG.screenshots[index];
     if (!item || !screenshotImg) return;
 
+    activeScreenshotIndex = index;
     screenshotImg.style.display = 'block';
     if (screenshotPlaceholder) screenshotPlaceholder.style.display = 'none';
     screenshotImg.src = item.src;
-    screenshotImg.alt = item.label;
+    screenshotImg.alt = item.labelKey ? I18N.t(item.labelKey) : (item.label || '');
 
     document.querySelectorAll('.thumb-btn').forEach((btn, idx) => {
         btn.classList.toggle('active', idx === index);
     });
 }
 
-if (screenshotImg) {
-    screenshotImg.addEventListener('error', () => {
-        screenshotImg.style.display = 'none';
-        if (screenshotPlaceholder) screenshotPlaceholder.style.display = 'block';
-    });
+function renderScreenshotThumbs() {
+    if (!screenshotImg || CONFIG.screenshots.length === 0) return;
 
-    if (CONFIG.screenshots.length > 0) {
-        setScreenshot(0);
+    setScreenshot(activeScreenshotIndex);
 
-        if (CONFIG.screenshots.length > 1 && thumbsContainer) {
+    if (thumbsContainer) {
+        thumbsContainer.innerHTML = '';
+        if (CONFIG.screenshots.length > 1) {
             CONFIG.screenshots.forEach((shot, index) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = `thumb-btn ${index === 0 ? 'active' : ''}`;
-                btn.textContent = shot.label;
+                btn.className = `thumb-btn ${index === activeScreenshotIndex ? 'active' : ''}`;
+                btn.textContent = shot.labelKey ? I18N.t(shot.labelKey) : shot.label;
                 btn.addEventListener('click', () => setScreenshot(index));
                 thumbsContainer.appendChild(btn);
             });
@@ -196,8 +212,15 @@ if (screenshotImg) {
     }
 }
 
+if (screenshotImg) {
+    screenshotImg.addEventListener('error', () => {
+        screenshotImg.style.display = 'none';
+        if (screenshotPlaceholder) screenshotPlaceholder.style.display = 'block';
+    });
+}
+
 // =========================================================
-// 4. DOWNLOADS ACCORDION + OS DETECTION
+// 4. DOWNLOADS ACCORDION
 // =========================================================
 const accordionItems = document.querySelectorAll('.accordion-item');
 
@@ -219,23 +242,13 @@ accordionItems.forEach(item => {
     });
 });
 
-function detectUserOS() {
-    const ua = navigator.userAgent.toLowerCase();
-    if (ua.includes('win')) return 'windows';
-    if (ua.includes('fedora') || ua.includes('red hat') || ua.includes('centos')) return 'fedora';
-    if (ua.includes('linux') || ua.includes('ubuntu') || ua.includes('debian')) return 'debian';
-    return null;
-}
+// =========================================================
+// 5. BOOTSTRAP I18N & DATA
+// =========================================================
+document.addEventListener('i18n:ready', () => {
+    renderTranslatedDynamicParts();
+});
 
-const detectedOS = detectUserOS();
-if (detectedOS && accordionItems.length > 0) {
-    const targetItem = document.querySelector(`.accordion-item[data-os="${detectedOS}"]`);
-    if (targetItem) {
-        const tag = targetItem.querySelector('.recommended-tag');
-        if (tag) tag.hidden = false;
-
-        // Auto-expand the detected OS drawer on the dedicated /downloads/ page
-        targetItem.classList.add('open');
-        targetItem.querySelector('.accordion-header').setAttribute('aria-expanded', 'true');
-    }
-}
+I18N.init().then(() => {
+    loadGitHubStats();
+});

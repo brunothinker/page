@@ -1,0 +1,71 @@
+{
+    "meta": {
+        "home_title": "FallByte — Преобразуйте медиафайлы. Сохраняйте приватность.",
+        "home_description": "Преобразуйте медиафайлы. Сохраняйте приватность. Быстрый, лёгкий и автономный набор инструментов для изображений, видео и аудио.",
+        "downloads_title": "Загрузки — FallByte",
+        "downloads_description": "Скачайте FallByte для Windows (.exe) и Linux (.DEB, .RPM и .AppImage) с пошаговыми инструкциями по установке."
+    },
+    "common": {
+        "version_badge": "v{version} • Открытый исходный код",
+        "footer_built_by": "Автор:",
+        "copied": "Скопировано!",
+        "copy_command": "Копировать команду",
+        "copy_failed": "Ошибка копирования",
+        "for_you": "ДЛЯ ВАС"
+    },
+    "hero": {
+        "downloads_badge_title": "Всего загрузок релиза на GitHub для этой версии",
+        "downloads_count_singular": "{count} загрузка (v{version})",
+        "downloads_count_plural": "{count} загрузок (v{version})",
+        "subtitle": "Преобразуйте медиафайлы. Сохраняйте приватность. Быстрый, лёгкий и автономный набор инструментов для изображений, видео и аудио.",
+        "cta_download": "Скачать",
+        "cta_github": "GitHub",
+        "screenshot_alt": "Интерфейс FallByte",
+        "screenshot_main_label": "Главный экран",
+        "screenshot_placeholder": "Добавьте скриншот в <code>screenshots/preview.png</code>"
+    },
+    "downloads": {
+        "back_home": "На главную",
+        "title": "Загрузки",
+        "subtitle": "Выберите вашу операционную систему, чтобы скачать последнюю версию (<span id=\"version-badge\">v{version} &bull; Открытый исходный код</span>) и посмотреть инструкцию по установке.",
+        "labels": {
+            "windows": "Скачать установщик Windows (v{version})",
+            "deb": "Скачать пакет .DEB (v{version})",
+            "rpm": "Скачать пакет .RPM (v{version})",
+            "appimage": "Скачать файл .AppImage (v{version})"
+        },
+        "os": {
+            "debian_title": "Ubuntu / Debian",
+            "debian_desc": "Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)",
+            "fedora_title": "Fedora / RedHat",
+            "fedora_desc": "Fedora, RHEL, openSUSE, Rocky Linux (.RPM)",
+            "appimage_title": "Портативный Linux",
+            "appimage_desc": "Arch, Manjaro, SteamOS и другие дистрибутивы (.AppImage)",
+            "windows_title": "Windows",
+            "windows_desc": "Windows 10 и 11 (64-бит) • Установщик (.exe)"
+        },
+        "guides": {
+            "opt1_gui": "Вариант 1: Графический центр приложений",
+            "opt1_file_manager": "Вариант 1: Файловый менеджер (без установки)",
+            "opt2_terminal": "Вариант 2: Терминал (скачать и установить)",
+            "opt2_terminal_run": "Вариант 2: Терминал (скачать и запустить)",
+            "quick_install": "Быстрая установка",
+            "deb_step1": "Скачайте пакет <code>.deb</code> с помощью кнопки выше.",
+            "deb_step2": "Откройте файловый менеджер, перейдите в <strong>Загрузки</strong> и дважды щёлкните по <code data-filename=\"deb\">{filename}</code>.",
+            "deb_step3": "Центр приложений вашей системы (App Center / GDebi) откроется автоматически &mdash; нажмите <strong>Установить</strong> и введите пароль.",
+            "rpm_step1": "Скачайте пакет <code>.rpm</code> с помощью кнопки выше.",
+            "rpm_step2": "Откройте <strong>Файлы</strong>, перейдите в <strong>Загрузки</strong> и дважды щёлкните по <code data-filename=\"rpm\">{filename}</code>.",
+            "rpm_step3": "GNOME Software / KDE Discover откроет страницу пакета &mdash; нажмите <strong>Установить</strong> для завершения.",
+            "appimage_step1": "Скачайте <code data-filename=\"appimage\">{filename}</code>.",
+            "appimage_step2": "Нажмите правой кнопкой мыши на файл &rarr; <strong>Свойства</strong> &rarr; <strong>Права</strong> и включите <em>Разрешить выполнение файла как программы</em>.",
+            "appimage_step3": "Дважды щёлкните по файлу AppImage, чтобы сразу запустить FallByte.",
+            "appimage_curl_comment": "# Убедитесь, что curl установлен (например: sudo pacman -Syu --needed curl)",
+            "win_step1": "Скачайте и дважды щёлкните по <code data-filename=\"windows\">{filename}</code>, чтобы запустить мастер установки.",
+            "win_step2": "Следуйте инструкциям на экране для завершения установки FallByte.",
+            "smartscreen_title": "Уведомление Windows Smart App Control и SmartScreen",
+            "smartscreen_p1": "Поскольку FallByte — бесплатный независимый проект с открытым исходным кодом без платного коммерческого сертификата EV Code-Signing, функция <strong>Smart App Control</strong> в Windows 11 может заблокировать запуск установщика (или SmartScreen может показать окно <em>«Система Windows защитила ваш компьютер»</em>).",
+            "smartscreen_p2": "Чтобы продолжить: если появилось окно SmartScreen, нажмите <strong>Подробнее</strong> &rarr; <strong>Выполнить в любом случае</strong>. Если запуск блокирует <strong>Smart App Control</strong> в Windows 11, откройте <strong>Параметры Smart App Control</strong> по кнопке ниже и переключите в положение <strong>Откл.</strong>",
+            "smartscreen_btn": "Открыть параметры Smart App Control"
+        }
+    }
+}

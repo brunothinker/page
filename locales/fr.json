@@ -1,0 +1,71 @@
+{
+    "meta": {
+        "home_title": "FallByte — Transformez vos médias. Préservez votre vie privée.",
+        "home_description": "Transformez vos médias. Préservez votre vie privée. Une boîte à outils multimédia rapide, légère et hors ligne pour images, vidéos et audio.",
+        "downloads_title": "Téléchargements — FallByte",
+        "downloads_description": "Téléchargez FallByte pour Windows (.exe) et Linux (.DEB, .RPM et .AppImage) avec des guides d'installation étape par étape."
+    },
+    "common": {
+        "version_badge": "v{version} • Open Source",
+        "footer_built_by": "Créé par",
+        "copied": "Copié !",
+        "copy_command": "Copier la commande",
+        "copy_failed": "Échec de la copie",
+        "for_you": "POUR VOUS"
+    },
+    "hero": {
+        "downloads_badge_title": "Nombre total de téléchargements GitHub pour cette version",
+        "downloads_count_singular": "{count} téléchargement (v{version})",
+        "downloads_count_plural": "{count} téléchargements (v{version})",
+        "subtitle": "Transformez vos médias. Préservez votre vie privée. Une boîte à outils multimédia rapide, légère et hors ligne pour images, vidéos et audio.",
+        "cta_download": "Télécharger",
+        "cta_github": "GitHub",
+        "screenshot_alt": "Interface de FallByte",
+        "screenshot_main_label": "Interface Principale",
+        "screenshot_placeholder": "Ajoutez votre capture d'écran dans <code>screenshots/preview.png</code>"
+    },
+    "downloads": {
+        "back_home": "Retour à l'accueil",
+        "title": "Téléchargements",
+        "subtitle": "Sélectionnez votre système d'exploitation pour télécharger la dernière version (<span id=\"version-badge\">v{version} &bull; Open Source</span>) et consulter les étapes d'installation.",
+        "labels": {
+            "windows": "Télécharger l'installateur Windows (v{version})",
+            "deb": "Télécharger le paquet .DEB (v{version})",
+            "rpm": "Télécharger le paquet .RPM (v{version})",
+            "appimage": "Télécharger le binaire .AppImage (v{version})"
+        },
+        "os": {
+            "debian_title": "Ubuntu / Debian",
+            "debian_desc": "Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)",
+            "fedora_title": "Fedora / RedHat",
+            "fedora_desc": "Fedora, RHEL, openSUSE, Rocky Linux (.RPM)",
+            "appimage_title": "Linux Portable",
+            "appimage_desc": "Arch, Manjaro, SteamOS et autres distributions (.AppImage)",
+            "windows_title": "Windows",
+            "windows_desc": "Windows 10 et 11 (64 bits) • Installateur (.exe)"
+        },
+        "guides": {
+            "opt1_gui": "Option 1 : Logithèque graphique",
+            "opt1_file_manager": "Option 1 : Gestionnaire de fichiers (Sans installation)",
+            "opt2_terminal": "Option 2 : Terminal (Télécharger et installer)",
+            "opt2_terminal_run": "Option 2 : Terminal (Télécharger et exécuter)",
+            "quick_install": "Installation rapide",
+            "deb_step1": "Téléchargez le paquet <code>.deb</code> à l'aide du bouton ci-dessus.",
+            "deb_step2": "Ouvrez votre gestionnaire de fichiers, allez dans <strong>Téléchargements</strong> et double-cliquez sur <code data-filename=\"deb\">{filename}</code>.",
+            "deb_step3": "La logithèque de votre système (App Center / GDebi) s'ouvrira automatiquement &mdash; cliquez sur <strong>Installer</strong> et saisissez votre mot de passe.",
+            "rpm_step1": "Téléchargez le paquet <code>.rpm</code> à l'aide du bouton ci-dessus.",
+            "rpm_step2": "Ouvrez <strong>Fichiers</strong>, allez dans <strong>Téléchargements</strong> et double-cliquez sur <code data-filename=\"rpm\">{filename}</code>.",
+            "rpm_step3": "GNOME Logiciels / KDE Discover ouvrira la page du paquet &mdash; cliquez sur <strong>Installer</strong> pour terminer.",
+            "appimage_step1": "Téléchargez <code data-filename=\"appimage\">{filename}</code>.",
+            "appimage_step2": "Faites un clic droit sur le fichier &rarr; <strong>Propriétés</strong> &rarr; <strong>Permissions</strong> et cochez <em>Autoriser l'exécution du fichier comme un programme</em>.",
+            "appimage_step3": "Double-cliquez sur le fichier AppImage pour lancer FallByte immédiatement.",
+            "appimage_curl_comment": "# Assurez-vous que curl est installé (ex. : sudo pacman -Syu --needed curl)",
+            "win_step1": "Téléchargez et double-cliquez sur <code data-filename=\"windows\">{filename}</code> pour lancer l'assistant d'installation.",
+            "win_step2": "Suivez les instructions à l'écran pour terminer l'installation de FallByte.",
+            "smartscreen_title": "Avis Windows Smart App Control et SmartScreen",
+            "smartscreen_p1": "FallByte étant un projet open-source gratuit et indépendant sans certificat commercial payant EV Code-Signing, le contrôle <strong>Smart App Control</strong> de Windows 11 peut bloquer l'exécution de l'installateur (ou SmartScreen peut afficher <em>« Windows a protégé votre ordinateur »</em>).",
+            "smartscreen_p2": "Pour continuer : si SmartScreen s'affiche, cliquez sur <strong>Informations complémentaires</strong> &rarr; <strong>Exécuter quand même</strong>. Si <strong>Smart App Control</strong> le bloque sous Windows 11, ouvrez les <strong>Paramètres Smart App Control</strong> via le raccourci ci-dessous et passez-le sur <strong>Désactivé</strong>.",
+            "smartscreen_btn": "Ouvrir les paramètres Smart App Control"
+        }
+    }
+}

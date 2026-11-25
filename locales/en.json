@@ -1,0 +1,71 @@
+{
+    "meta": {
+        "home_title": "FallByte — Transform your media. Keep your privacy.",
+        "home_description": "Transform your media. Keep your privacy. A fast, lightweight, and offline media toolkit for images, videos, and audio.",
+        "downloads_title": "Downloads — FallByte",
+        "downloads_description": "Download FallByte for Windows (.exe) and Linux (.DEB, .RPM, and .AppImage) with step-by-step installation guides."
+    },
+    "common": {
+        "version_badge": "v{version} • Open Source",
+        "footer_built_by": "Built by",
+        "copied": "Copied!",
+        "copy_command": "Copy command",
+        "copy_failed": "Failed to copy",
+        "for_you": "FOR YOU"
+    },
+    "hero": {
+        "downloads_badge_title": "Total GitHub release downloads for this version",
+        "downloads_count_singular": "{count} download (v{version})",
+        "downloads_count_plural": "{count} downloads (v{version})",
+        "subtitle": "Transform your media. Keep your privacy. A fast, lightweight, and offline media toolkit for images, videos, and audio.",
+        "cta_download": "Download Now",
+        "cta_github": "GitHub",
+        "screenshot_alt": "FallByte Interface",
+        "screenshot_main_label": "Main Interface",
+        "screenshot_placeholder": "Add your screenshot to <code>screenshots/preview.png</code>"
+    },
+    "downloads": {
+        "back_home": "Back to Home",
+        "title": "Downloads",
+        "subtitle": "Select your operating system to download the latest release (<span id=\"version-badge\">v{version} &bull; Open Source</span>) and view installation steps.",
+        "labels": {
+            "windows": "Download Windows Installer (v{version})",
+            "deb": "Download .DEB Package (v{version})",
+            "rpm": "Download .RPM Package (v{version})",
+            "appimage": "Download .AppImage Binary (v{version})"
+        },
+        "os": {
+            "debian_title": "Ubuntu / Debian",
+            "debian_desc": "Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)",
+            "fedora_title": "Fedora / RedHat",
+            "fedora_desc": "Fedora, RHEL, openSUSE, Rocky Linux (.RPM)",
+            "appimage_title": "Portable Linux",
+            "appimage_desc": "Arch, Manjaro, SteamOS, and other distros (.AppImage)",
+            "windows_title": "Windows",
+            "windows_desc": "Windows 10 and 11 (64-bit) • Installer (.exe)"
+        },
+        "guides": {
+            "opt1_gui": "Option 1: Graphical Software Center",
+            "opt1_file_manager": "Option 1: File Manager (No Installation Needed)",
+            "opt2_terminal": "Option 2: Terminal (Download & Install)",
+            "opt2_terminal_run": "Option 2: Terminal (Download & Run)",
+            "quick_install": "Quick Installation",
+            "deb_step1": "Download the <code>.deb</code> package using the button above.",
+            "deb_step2": "Open your file manager, navigate to <strong>Downloads</strong>, and double-click <code data-filename=\"deb\">{filename}</code>.",
+            "deb_step3": "Your system's Software Center (App Center / GDebi) will open automatically &mdash; click <strong>Install</strong> and enter your password.",
+            "rpm_step1": "Download the <code>.rpm</code> package using the button above.",
+            "rpm_step2": "Open <strong>Files</strong>, go to <strong>Downloads</strong>, and double-click <code data-filename=\"rpm\">{filename}</code>.",
+            "rpm_step3": "GNOME Software / KDE Discover will open the package page &mdash; click <strong>Install</strong> to complete setup.",
+            "appimage_step1": "Download <code data-filename=\"appimage\">{filename}</code>.",
+            "appimage_step2": "Right-click the file &rarr; <strong>Properties</strong> &rarr; <strong>Permissions</strong> and enable <em>Allow executing file as program</em>.",
+            "appimage_step3": "Double-click the AppImage file to run FallByte immediately.",
+            "appimage_curl_comment": "# Make sure curl is installed (e.g., sudo pacman -Syu --needed curl)",
+            "win_step1": "Download and double-click <code data-filename=\"windows\">{filename}</code> to launch the setup wizard.",
+            "win_step2": "Follow the on-screen prompts to finish installing FallByte.",
+            "smartscreen_title": "Windows Smart App Control & SmartScreen Notice",
+            "smartscreen_p1": "Because FallByte is a free, independent open-source project without a paid commercial EV Code-Signing certificate, Windows 11's <strong>Smart App Control</strong> may block the installer from running (or SmartScreen may show <em>\"Windows protected your PC\"</em>).",
+            "smartscreen_p2": "To proceed: if SmartScreen appears, click <strong>More info</strong> &rarr; <strong>Run anyway</strong>. If <strong>Smart App Control</strong> blocks it on Windows 11, open <strong>Smart App Control settings</strong> using the shortcut below and switch it to <strong>Off</strong>.",
+            "smartscreen_btn": "Open Smart App Control Settings"
+        }
+    }
+}

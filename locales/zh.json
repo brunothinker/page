@@ -1,0 +1,71 @@
+{
+    "meta": {
+        "home_title": "FallByte — 转换你的媒体文件，守护你的隐私。",
+        "home_description": "转换你的媒体文件，守护你的隐私。一款快速、轻量且完全离线的图像、视频和音频处理工具套件。",
+        "downloads_title": "下载 — FallByte",
+        "downloads_description": "下载适用于 Windows (.exe) 和 Linux (.DEB、.RPM 和 .AppImage) 的 FallByte，附带分步安装指南。"
+    },
+    "common": {
+        "version_badge": "v{version} • 开源软件",
+        "footer_built_by": "开发者：",
+        "copied": "已复制！",
+        "copy_command": "复制命令",
+        "copy_failed": "复制失败",
+        "for_you": "推荐"
+    },
+    "hero": {
+        "downloads_badge_title": "此版本在 GitHub 上的总下载量",
+        "downloads_count_singular": "{count} 次下载 (v{version})",
+        "downloads_count_plural": "{count} 次下载 (v{version})",
+        "subtitle": "转换你的媒体文件，守护你的隐私。一款快速、轻量且完全离线的图像、视频和音频处理工具套件。",
+        "cta_download": "立即下载",
+        "cta_github": "GitHub",
+        "screenshot_alt": "FallByte 界面",
+        "screenshot_main_label": "主界面",
+        "screenshot_placeholder": "请将您的截图添加至 <code>screenshots/preview.png</code>"
+    },
+    "downloads": {
+        "back_home": "返回首页",
+        "title": "下载",
+        "subtitle": "选择您的操作系统以下载最新版本 (<span id=\"version-badge\">v{version} &bull; 开源软件</span>) 并查看安装步骤。",
+        "labels": {
+            "windows": "下载 Windows 安装程序 (v{version})",
+            "deb": "下载 .DEB 安装包 (v{version})",
+            "rpm": "下载 .RPM 安装包 (v{version})",
+            "appimage": "下载 .AppImage 可执行文件 (v{version})"
+        },
+        "os": {
+            "debian_title": "Ubuntu / Debian",
+            "debian_desc": "Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)",
+            "fedora_title": "Fedora / RedHat",
+            "fedora_desc": "Fedora, RHEL, openSUSE, Rocky Linux (.RPM)",
+            "appimage_title": "便携版 Linux",
+            "appimage_desc": "Arch, Manjaro, SteamOS 及其他发行版 (.AppImage)",
+            "windows_title": "Windows",
+            "windows_desc": "Windows 10 和 11 (64 位) • 安装程序 (.exe)"
+        },
+        "guides": {
+            "opt1_gui": "方式 1：图形化软件中心",
+            "opt1_file_manager": "方式 1：文件管理器（无需安装）",
+            "opt2_terminal": "方式 2：终端（下载并安装）",
+            "opt2_terminal_run": "方式 2：终端（下载并运行）",
+            "quick_install": "快速安装",
+            "deb_step1": "点击上方按钮下载 <code>.deb</code> 安装包。",
+            "deb_step2": "打开文件管理器，进入 <strong>下载</strong> 文件夹并双击 <code data-filename=\"deb\">{filename}</code>。",
+            "deb_step3": "系统的软件中心 (App Center / GDebi) 将自动打开 &mdash; 点击 <strong>安装</strong> 并输入密码即可。",
+            "rpm_step1": "点击上方按钮下载 <code>.rpm</code> 安装包。",
+            "rpm_step2": "打开 <strong>文件</strong>，进入 <strong>下载</strong> 文件夹并双击 <code data-filename=\"rpm\">{filename}</code>。",
+            "rpm_step3": "GNOME Software / KDE Discover 将打开软件包页面 &mdash; 点击 <strong>安装</strong> 完成设置。",
+            "appimage_step1": "下载 <code data-filename=\"appimage\">{filename}</code>。",
+            "appimage_step2": "右键点击文件 &rarr; <strong>属性</strong> &rarr; <strong>权限</strong>，勾选 <em>允许将文件作为程序执行</em>。",
+            "appimage_step3": "双击 AppImage 文件即可立即运行 FallByte。",
+            "appimage_curl_comment": "# 请确保已安装 curl（例如：sudo pacman -Syu --needed curl）",
+            "win_step1": "下载并双击 <code data-filename=\"windows\">{filename}</code> 启动安装向导。",
+            "win_step2": "按照屏幕提示完成 FallByte 的安装。",
+            "smartscreen_title": "Windows 智能应用控制与 SmartScreen 提示",
+            "smartscreen_p1": "由于 FallByte 是一款免费的独立开源项目，未购买商业 EV 代码签名证书，Windows 11 的 <strong>智能应用控制 (Smart App Control)</strong> 可能会阻止运行安装程序（或 SmartScreen 可能会显示<em>“Windows 已保护你的电脑”</em>）。",
+            "smartscreen_p2": "继续操作的方法：如果出现 SmartScreen 提示，请点击 <strong>更多信息</strong> &rarr; <strong>仍要运行</strong>。如果在 Windows 11 上被 <strong>智能应用控制</strong> 阻止，请通过下方快捷方式打开 <strong>智能应用控制设置</strong> 并将其切换为 <strong>关闭</strong>。",
+            "smartscreen_btn": "打开智能应用控制设置"
+        }
+    }
+}

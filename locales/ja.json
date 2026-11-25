@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "home_title": "FallByte — メディアを変換。プライバシーはそのまま。",
+    "home_description": "メディアを変換。プライバシーはそのまま。画像・動画・音声に対応した高速・軽量・オフラインのメディアツールキット。",
+    "downloads_title": "ダウンロード — FallByte",
+    "downloads_description": "Windows (.exe) および Linux (.DEB, .RPM, .AppImage) 向けの FallByte をステップバイステップのインストール手順付きでダウンロード。"
+  },
+  "common": {
+    "version_badge": "v{version} • オープンソース",
+    "footer_built_by": "開発:",
+    "copied": "コピーしました！",
+    "copy_command": "コマンドをコピー",
+    "copy_failed": "コピーに失敗しました",
+    "for_you": "おすすめ"
+  },
+  "hero": {
+    "downloads_badge_title": "このバージョンの GitHub リリース総ダウンロード数",
+    "downloads_count_singular": "{count} ダウンロード (v{version})",
+    "downloads_count_plural": "{count} ダウンロード (v{version})",
+    "subtitle": "メディアを変換。プライバシーはそのまま。画像・動画・音声に対応した高速・軽量・オフラインのメディアツールキット。",
+    "cta_download": "今すぐダウンロード",
+    "cta_github": "GitHub",
+    "screenshot_alt": "FallByte インターフェース",
+    "screenshot_main_label": "メイン画面",
+    "screenshot_placeholder": "スクリーンショットを <code>screenshots/preview.png</code> に追加してください"
+  },
+  "downloads": {
+    "back_home": "ホームに戻る",
+    "title": "ダウンロード",
+    "subtitle": "お使いの OS を選択して最新リリース (<span id=\"version-badge\">v{version} &bull; オープンソース</span>) をダウンロードし、インストール手順を確認してください。",
+    "labels": {
+      "windows": "Windows インストーラーをダウンロード (v{version})",
+      "deb": ".DEB パッケージをダウンロード (v{version})",
+      "rpm": ".RPM パッケージをダウンロード (v{version})",
+      "appimage": ".AppImage バイナリをダウンロード (v{version})"
+    },
+    "os": {
+      "debian_title": "Ubuntu / Debian",
+      "debian_desc": "Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)",
+      "fedora_title": "Fedora / RedHat",
+      "fedora_desc": "Fedora, RHEL, openSUSE, Rocky Linux (.RPM)",
+      "appimage_title": "ポータブル Linux",
+      "appimage_desc": "Arch, Manjaro, SteamOS などのディストリビューション (.AppImage)",
+      "windows_title": "Windows",
+      "windows_desc": "Windows 10 および 11 (64ビット) • インストーラー (.exe)"
+    },
+    "guides": {
+      "opt1_gui": "方法 1: グラフィカルなソフトウェアセンター",
+      "opt1_file_manager": "方法 1: ファイルマネージャー（インストール不要）",
+      "opt2_terminal": "方法 2: ターミナル（ダウンロードとインストール）",
+      "opt2_terminal_run": "方法 2: ターミナル（ダウンロードと実行）",
+      "quick_install": "クイックインストール",
+      "deb_step1": "上のボタンから <code>.deb</code> パッケージをダウンロードします。",
+      "deb_step2": "ファイルマネージャーを開き、<strong>ダウンロード</strong> に移動して <code data-filename=\"deb\">{filename}</code> をダブルクリックします。",
+      "deb_step3": "システムのソフトウェアセンター (App Center / GDebi) が自動的に開きます &mdash; <strong>インストール</strong> をクリックしてパスワードを入力してください。",
+      "rpm_step1": "上のボタンから <code>.rpm</code> パッケージをダウンロードします。",
+      "rpm_step2": "<strong>ファイル</strong> を開き、<strong>ダウンロード</strong> に移動して <code data-filename=\"rpm\">{filename}</code> をダブルクリックします。",
+      "rpm_step3": "GNOME Software / KDE Discover でパッケージページが開きます &mdash; <strong>インストール</strong> をクリックして完了です。",
+      "appimage_step1": "<code data-filename=\"appimage\">{filename}</code> をダウンロードします。",
+      "appimage_step2": "ファイルを右クリック &rarr; <strong>プロパティ</strong> &rarr; <strong>アクセス権</strong> を開き、<em>プログラムとして実行可能</em> を有効にします。",
+      "appimage_step3": "AppImage ファイルをダブルクリックすると、すぐに FallByte が起動します。",
+      "appimage_curl_comment": "# curl がインストールされていることを確認してください（例: sudo pacman -Syu --needed curl）",
+      "win_step1": "<code data-filename=\"windows\">{filename}</code> をダウンロードしてダブルクリックし、セットアップウィザードを起動します。",
+      "win_step2": "画面の指示に従って FallByte のインストールを完了してください。",
+      "smartscreen_title": "Windows Smart App Control と SmartScreen に関する注意",
+      "smartscreen_p1": "FallByte は有償の商用 EV コードサイニング証明書を持たない無料の独立系オープンソースプロジェクトであるため、Windows 11 の <strong>Smart App Control</strong> がインストーラーの実行をブロックする場合があります（または SmartScreen に<em>「Windows によって PC が保護されました」</em>と表示されることがあります）。",
+      "smartscreen_p2": "続行するには: SmartScreen が表示された場合は <strong>詳細情報</strong> &rarr; <strong>実行</strong> をクリックしてください。Windows 11 で <strong>Smart App Control</strong> にブロックされた場合は、下のショートカットから <strong>Smart App Control の設定</strong> を開き、<strong>オフ</strong> に切り替えてください。",
+      "smartscreen_btn": "Smart App Control の設定を開く"
+    }
+  }
+}

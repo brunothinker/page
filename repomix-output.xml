@@ -53,7 +53,19 @@ icons/
   windows.svg
 js/
   config.js
+  i18n.js
   main.js
+locales/
+  de.json
+  en.json
+  es.json
+  fr.json
+  it.json
+  ja.json
+  ko.json
+  pt.json
+  ru.json
+  zh.json
 screenshots/
   preview.png
 .assetsignore
@@ -66,6 +78,952 @@ wrangler.jsonc
 <files>
 This section contains the contents of the repository's files.
 
+<file path="js/i18n.js">
+/**
+ * Internationalization (i18n) controller.
+ * Handles language detection, locale fetching, fallback resolution, and DOM injection.
+ */
+class I18nManager {
+    constructor() {
+        this.currentLang = CONFIG.i18n.defaultLang;
+        this.translations = {};
+        this.fallbackTranslations = {};
+        this.listeners = [];
+        this.basePath = this.resolveBasePath();
+    }
+
+    /**
+     * Computes relative path prefix so assets resolve properly both at root (/) and subpages (/downloads/).
+     */
+    resolveBasePath() {
+        const path = window.location.pathname;
+        if (path.includes("/downloads")) {
+            return "../";
+        }
+        return "./";
+    }
+
+    /**
+     * Determines initial language from URL query param, localStorage, or browser navigator.
+     */
+    detectLanguage() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlLang = urlParams.get("lang");
+        if (urlLang && CONFIG.i18n.supportedLangs.includes(urlLang.toLowerCase())) {
+            return urlLang.toLowerCase();
+        }
+
+        try {
+            const savedLang = localStorage.getItem("fallbyte_lang");
+            if (savedLang && CONFIG.i18n.supportedLangs.includes(savedLang)) {
+                return savedLang;
+            }
+        } catch (_) {
+            // Ignore storage access restrictions
+        }
+
+        const navLangs = navigator.languages || [navigator.language || navigator.userLanguage || "en"];
+        for (const lang of navLangs) {
+            if (!lang) continue;
+            const base = lang.toLowerCase().split("-")[0];
+            if (CONFIG.i18n.supportedLangs.includes(base)) {
+                return base;
+            }
+        }
+
+        return CONFIG.i18n.defaultLang;
+    }
+
+    /**
+     * Loads JSON translation file for a given language code.
+     */
+    async fetchLocale(lang) {
+        const response = await fetch(`${this.basePath}locales/${lang}.json`);
+        if (!response.ok) {
+            throw new Error(`Failed to load locale: ${lang}`);
+        }
+        return response.json();
+    }
+
+    /**
+     * Initializes translations (loading English fallback first, then target language).
+     */
+    async init() {
+        try {
+            this.fallbackTranslations = await this.fetchLocale(CONFIG.i18n.defaultLang);
+        } catch (err) {
+            console.error("Critical: Could not load fallback locale.", err);
+        }
+
+        const targetLang = this.detectLanguage();
+        await this.setLanguage(targetLang, false);
+    }
+
+    /**
+     * Switches active language, updates DOM elements, and persists preference.
+     */
+    async setLanguage(lang, updateUrl = true) {
+        if (!CONFIG.i18n.supportedLangs.includes(lang)) {
+            lang = CONFIG.i18n.defaultLang;
+        }
+
+        if (lang === CONFIG.i18n.defaultLang && Object.keys(this.fallbackTranslations).length > 0) {
+            this.translations = this.fallbackTranslations;
+        } else {
+            try {
+                this.translations = await this.fetchLocale(lang);
+            } catch (err) {
+                console.warn(`Falling back to ${CONFIG.i18n.defaultLang} due to error loading ${lang}:`, err);
+                this.translations = this.fallbackTranslations;
+                lang = CONFIG.i18n.defaultLang;
+            }
+        }
+
+        this.currentLang = lang;
+        document.documentElement.lang = lang;
+
+        try {
+            localStorage.setItem("fallbyte_lang", lang);
+        } catch (_) {
+            // Ignore storage errors
+        }
+
+        if (updateUrl) {
+            const url = new URL(window.location.href);
+            if (lang === CONFIG.i18n.defaultLang) {
+                url.searchParams.delete("lang");
+            } else {
+                url.searchParams.set("lang", lang);
+            }
+            window.history.replaceState({}, "", url.toString());
+        }
+
+        this.applyTranslations();
+        this.notifyListeners();
+    }
+
+    /**
+     * Resolves a dot-notation key (e.g., "hero.title") with fallback and variable interpolation.
+     */
+    t(key, vars = {}) {
+        let value = this.resolveKey(this.translations, key);
+        if (value === undefined) {
+            value = this.resolveKey(this.fallbackTranslations, key);
+        }
+        if (value === undefined) {
+            return key;
+        }
+
+        const allVars = { version: CONFIG.version, ...vars };
+        return String(value).replace(/\{(\w+)\}/g, (_, k) =>
+            allVars[k] !== undefined ? allVars[k] : `{${k}}`
+        );
+    }
+
+    resolveKey(obj, key) {
+        return key.split(".").reduce((acc, part) => (acc && acc[part] !== undefined ? acc[part] : undefined), obj);
+    }
+
+    /**
+     * Updates all elements carrying [data-i18n] and [data-i18n-attr] attributes.
+     */
+    applyTranslations() {
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+            const key = el.getAttribute("data-i18n");
+            if (key) {
+                el.textContent = this.t(key);
+            }
+        });
+
+        document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+            const key = el.getAttribute("data-i18n-html");
+            if (key) {
+                el.innerHTML = this.t(key);
+            }
+        });
+
+        document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+            const key = el.getAttribute("data-i18n-placeholder");
+            if (key) {
+                el.setAttribute("placeholder", this.t(key));
+            }
+        });
+
+        document.querySelectorAll("[data-i18n-aria]").forEach((el) => {
+            const key = el.getAttribute("data-i18n-aria");
+            if (key) {
+                el.setAttribute("aria-label", this.t(key));
+            }
+        });
+
+        const isDownloads = window.location.pathname.includes("/downloads");
+        const titleKey = isDownloads ? "meta.downloadsTitle" : "meta.homeTitle";
+        const descKey = isDownloads ? "meta.downloadsDescription" : "meta.homeDescription";
+
+        const translatedTitle = this.t(titleKey);
+        if (translatedTitle !== titleKey) {
+            document.title = translatedTitle;
+        }
+
+        const metaDesc = document.querySelector('meta[name="description"]');
+        const translatedDesc = this.t(descKey);
+        if (metaDesc && translatedDesc !== descKey) {
+            metaDesc.setAttribute("content", translatedDesc);
+        }
+    }
+
+    onChange(callback) {
+        this.listeners.push(callback);
+    }
+
+    notifyListeners() {
+        this.listeners.forEach((cb) => cb(this.currentLang));
+    }
+}
+
+window.i18n = new I18nManager();
+</file>
+
+<file path="locales/de.json">
+{
+    "meta": {
+        "home_title": "FallByte — Transformiere deine Medien. Bewahre deine Privatsphäre.",
+        "home_description": "Transformiere deine Medien. Bewahre deine Privatsphäre. Ein schnelles, leichtgewichtiges Offline-Medien-Toolkit für Bilder, Videos und Audio.",
+        "downloads_title": "Downloads — FallByte",
+        "downloads_description": "Lade FallByte für Windows (.exe) und Linux (.DEB, .RPM und .AppImage) mit Schritt-für-Schritt-Installationsanleitungen herunter."
+    },
+    "common": {
+        "version_badge": "v{version} • Open Source",
+        "footer_built_by": "Entwickelt von",
+        "copied": "Kopiert!",
+        "copy_command": "Befehl kopieren",
+        "copy_failed": "Kopieren fehlgeschlagen",
+        "for_you": "FÜR DICH"
+    },
+    "hero": {
+        "downloads_badge_title": "Gesamte GitHub-Release-Downloads für diese Version",
+        "downloads_count_singular": "{count} Download (v{version})",
+        "downloads_count_plural": "{count} Downloads (v{version})",
+        "subtitle": "Transformiere deine Medien. Bewahre deine Privatsphäre. Ein schnelles, leichtgewichtiges Offline-Medien-Toolkit für Bilder, Videos und Audio.",
+        "cta_download": "Jetzt herunterladen",
+        "cta_github": "GitHub",
+        "screenshot_alt": "FallByte-Benutzeroberfläche",
+        "screenshot_main_label": "Hauptoberfläche",
+        "screenshot_placeholder": "Füge deinen Screenshot unter <code>screenshots/preview.png</code> hinzu"
+    },
+    "downloads": {
+        "back_home": "Zurück zur Startseite",
+        "title": "Downloads",
+        "subtitle": "Wähle dein Betriebssystem, um die neueste Version (<span id=\"version-badge\">v{version} &bull; Open Source</span>) herunterzuladen und die Installationsschritte anzuzeigen.",
+        "labels": {
+            "windows": "Windows-Installer herunterladen (v{version})",
+            "deb": ".DEB-Paket herunterladen (v{version})",
+            "rpm": ".RPM-Paket herunterladen (v{version})",
+            "appimage": ".AppImage-Binary herunterladen (v{version})"
+        },
+        "os": {
+            "debian_title": "Ubuntu / Debian",
+            "debian_desc": "Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)",
+            "fedora_title": "Fedora / RedHat",
+            "fedora_desc": "Fedora, RHEL, openSUSE, Rocky Linux (.RPM)",
+            "appimage_title": "Portables Linux",
+            "appimage_desc": "Arch, Manjaro, SteamOS und andere Distributionen (.AppImage)",
+            "windows_title": "Windows",
+            "windows_desc": "Windows 10 und 11 (64-Bit) • Installer (.exe)"
+        },
+        "guides": {
+            "opt1_gui": "Option 1: Grafisches Software-Center",
+            "opt1_file_manager": "Option 1: Dateimanager (Keine Installation erforderlich)",
+            "opt2_terminal": "Option 2: Terminal (Herunterladen & Installieren)",
+            "opt2_terminal_run": "Option 2: Terminal (Herunterladen & Ausführen)",
+            "quick_install": "Schnellinstallation",
+            "deb_step1": "Lade das <code>.deb</code>-Paket über die Schaltfläche oben herunter.",
+            "deb_step2": "Öffne deinen Dateimanager, wechsle zu <strong>Downloads</strong> und doppelklicke auf <code data-filename=\"deb\">{filename}</code>.",
+            "deb_step3": "Das Software-Center deines Systems (App Center / GDebi) öffnet sich automatisch &mdash; klicke auf <strong>Installieren</strong> und gib dein Passwort ein.",
+            "rpm_step1": "Lade das <code>.rpm</code>-Paket über die Schaltfläche oben herunter.",
+            "rpm_step2": "Öffne <strong>Dateien</strong>, gehe zu <strong>Downloads</strong> und doppelklicke auf <code data-filename=\"rpm\">{filename}</code>.",
+            "rpm_step3": "GNOME Software / KDE Discover öffnet die Paketseite &mdash; klicke auf <strong>Installieren</strong>, um die Einrichtung abzuschließen.",
+            "appimage_step1": "Lade <code data-filename=\"appimage\">{filename}</code> herunter.",
+            "appimage_step2": "Rechtsklick auf die Datei &rarr; <strong>Eigenschaften</strong> &rarr; <strong>Berechtigungen</strong> und aktiviere <em>Datei als Programm ausführen</em>.",
+            "appimage_step3": "Doppelklicke auf die AppImage-Datei, um FallByte sofort zu starten.",
+            "appimage_curl_comment": "# Stelle sicher, dass curl installiert ist (z. B. sudo pacman -Syu --needed curl)",
+            "win_step1": "Lade <code data-filename=\"windows\">{filename}</code> herunter und doppelklicke darauf, um den Installationsassistenten zu starten.",
+            "win_step2": "Folge den Anweisungen auf dem Bildschirm, um die Installation von FallByte abzuschließen.",
+            "smartscreen_title": "Hinweis zu Windows Smart App Control & SmartScreen",
+            "smartscreen_p1": "Da FallByte ein kostenloses, unabhängiges Open-Source-Projekt ohne kostenpflichtiges kommerzielles EV-Code-Signing-Zertifikat ist, kann <strong>Smart App Control</strong> unter Windows 11 die Ausführung des Installers blockieren (oder SmartScreen zeigt <em>„Der Computer wurde durch Windows geschützt“</em> an).",
+            "smartscreen_p2": "So fährst du fort: Wenn SmartScreen erscheint, klicke auf <strong>Weitere Informationen</strong> &rarr; <strong>Trotzdem ausführen</strong>. Wenn <strong>Smart App Control</strong> es unter Windows 11 blockiert, öffne die <strong>Smart App Control-Einstellungen</strong> über die Verknüpfung unten und stelle es auf <strong>Aus</strong>.",
+            "smartscreen_btn": "Smart App Control-Einstellungen öffnen"
+        }
+    }
+}
+</file>
+
+<file path="locales/en.json">
+{
+    "meta": {
+        "home_title": "FallByte — Transform your media. Keep your privacy.",
+        "home_description": "Transform your media. Keep your privacy. A fast, lightweight, and offline media toolkit for images, videos, and audio.",
+        "downloads_title": "Downloads — FallByte",
+        "downloads_description": "Download FallByte for Windows (.exe) and Linux (.DEB, .RPM, and .AppImage) with step-by-step installation guides."
+    },
+    "common": {
+        "version_badge": "v{version} • Open Source",
+        "footer_built_by": "Built by",
+        "copied": "Copied!",
+        "copy_command": "Copy command",
+        "copy_failed": "Failed to copy",
+        "for_you": "FOR YOU"
+    },
+    "hero": {
+        "downloads_badge_title": "Total GitHub release downloads for this version",
+        "downloads_count_singular": "{count} download (v{version})",
+        "downloads_count_plural": "{count} downloads (v{version})",
+        "subtitle": "Transform your media. Keep your privacy. A fast, lightweight, and offline media toolkit for images, videos, and audio.",
+        "cta_download": "Download Now",
+        "cta_github": "GitHub",
+        "screenshot_alt": "FallByte Interface",
+        "screenshot_main_label": "Main Interface",
+        "screenshot_placeholder": "Add your screenshot to <code>screenshots/preview.png</code>"
+    },
+    "downloads": {
+        "back_home": "Back to Home",
+        "title": "Downloads",
+        "subtitle": "Select your operating system to download the latest release (<span id=\"version-badge\">v{version} &bull; Open Source</span>) and view installation steps.",
+        "labels": {
+            "windows": "Download Windows Installer (v{version})",
+            "deb": "Download .DEB Package (v{version})",
+            "rpm": "Download .RPM Package (v{version})",
+            "appimage": "Download .AppImage Binary (v{version})"
+        },
+        "os": {
+            "debian_title": "Ubuntu / Debian",
+            "debian_desc": "Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)",
+            "fedora_title": "Fedora / RedHat",
+            "fedora_desc": "Fedora, RHEL, openSUSE, Rocky Linux (.RPM)",
+            "appimage_title": "Portable Linux",
+            "appimage_desc": "Arch, Manjaro, SteamOS, and other distros (.AppImage)",
+            "windows_title": "Windows",
+            "windows_desc": "Windows 10 and 11 (64-bit) • Installer (.exe)"
+        },
+        "guides": {
+            "opt1_gui": "Option 1: Graphical Software Center",
+            "opt1_file_manager": "Option 1: File Manager (No Installation Needed)",
+            "opt2_terminal": "Option 2: Terminal (Download & Install)",
+            "opt2_terminal_run": "Option 2: Terminal (Download & Run)",
+            "quick_install": "Quick Installation",
+            "deb_step1": "Download the <code>.deb</code> package using the button above.",
+            "deb_step2": "Open your file manager, navigate to <strong>Downloads</strong>, and double-click <code data-filename=\"deb\">{filename}</code>.",
+            "deb_step3": "Your system's Software Center (App Center / GDebi) will open automatically &mdash; click <strong>Install</strong> and enter your password.",
+            "rpm_step1": "Download the <code>.rpm</code> package using the button above.",
+            "rpm_step2": "Open <strong>Files</strong>, go to <strong>Downloads</strong>, and double-click <code data-filename=\"rpm\">{filename}</code>.",
+            "rpm_step3": "GNOME Software / KDE Discover will open the package page &mdash; click <strong>Install</strong> to complete setup.",
+            "appimage_step1": "Download <code data-filename=\"appimage\">{filename}</code>.",
+            "appimage_step2": "Right-click the file &rarr; <strong>Properties</strong> &rarr; <strong>Permissions</strong> and enable <em>Allow executing file as program</em>.",
+            "appimage_step3": "Double-click the AppImage file to run FallByte immediately.",
+            "appimage_curl_comment": "# Make sure curl is installed (e.g., sudo pacman -Syu --needed curl)",
+            "win_step1": "Download and double-click <code data-filename=\"windows\">{filename}</code> to launch the setup wizard.",
+            "win_step2": "Follow the on-screen prompts to finish installing FallByte.",
+            "smartscreen_title": "Windows Smart App Control & SmartScreen Notice",
+            "smartscreen_p1": "Because FallByte is a free, independent open-source project without a paid commercial EV Code-Signing certificate, Windows 11's <strong>Smart App Control</strong> may block the installer from running (or SmartScreen may show <em>\"Windows protected your PC\"</em>).",
+            "smartscreen_p2": "To proceed: if SmartScreen appears, click <strong>More info</strong> &rarr; <strong>Run anyway</strong>. If <strong>Smart App Control</strong> blocks it on Windows 11, open <strong>Smart App Control settings</strong> using the shortcut below and switch it to <strong>Off</strong>.",
+            "smartscreen_btn": "Open Smart App Control Settings"
+        }
+    }
+}
+</file>
+
+<file path="locales/es.json">
+{
+    "meta": {
+        "home_title": "FallByte — Transforma tus archivos multimedia. Mantén tu privacidad.",
+        "home_description": "Transforma tus archivos multimedia. Mantén tu privacidad. Un kit de herramientas rápido, ligero y sin conexión para imágenes, videos y audio.",
+        "downloads_title": "Descargas — FallByte",
+        "downloads_description": "Descarga FallByte para Windows (.exe) y Linux (.DEB, .RPM y .AppImage) con guías de instalación paso a paso."
+    },
+    "common": {
+        "version_badge": "v{version} • Código Abierto",
+        "footer_built_by": "Creado por",
+        "copied": "¡Copiado!",
+        "copy_command": "Copiar comando",
+        "copy_failed": "Error al copiar",
+        "for_you": "PARA TI"
+    },
+    "hero": {
+        "downloads_badge_title": "Total de descargas en GitHub para esta versión",
+        "downloads_count_singular": "{count} descarga (v{version})",
+        "downloads_count_plural": "{count} descargas (v{version})",
+        "subtitle": "Transforma tus archivos multimedia. Mantén tu privacidad. Un kit de herramientas rápido, ligero y sin conexión para imágenes, videos y audio.",
+        "cta_download": "Descargar Ahora",
+        "cta_github": "GitHub",
+        "screenshot_alt": "Interfaz de FallByte",
+        "screenshot_main_label": "Interfaz Principal",
+        "screenshot_placeholder": "Añade tu captura de pantalla en <code>screenshots/preview.png</code>"
+    },
+    "downloads": {
+        "back_home": "Volver al Inicio",
+        "title": "Descargas",
+        "subtitle": "Selecciona tu sistema operativo para descargar la última versión (<span id=\"version-badge\">v{version} &bull; Código Abierto</span>) y ver los pasos de instalación.",
+        "labels": {
+            "windows": "Descargar Instalador para Windows (v{version})",
+            "deb": "Descargar Paquete .DEB (v{version})",
+            "rpm": "Descargar Paquete .RPM (v{version})",
+            "appimage": "Descargar Binario .AppImage (v{version})"
+        },
+        "os": {
+            "debian_title": "Ubuntu / Debian",
+            "debian_desc": "Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)",
+            "fedora_title": "Fedora / RedHat",
+            "fedora_desc": "Fedora, RHEL, openSUSE, Rocky Linux (.RPM)",
+            "appimage_title": "Linux Portátil",
+            "appimage_desc": "Arch, Manjaro, SteamOS y otras distros (.AppImage)",
+            "windows_title": "Windows",
+            "windows_desc": "Windows 10 y 11 (64 bits) • Instalador (.exe)"
+        },
+        "guides": {
+            "opt1_gui": "Opción 1: Centro de Software Gráfico",
+            "opt1_file_manager": "Opción 1: Gestor de Archivos (Sin Instalación)",
+            "opt2_terminal": "Opción 2: Terminal (Descargar e Instalar)",
+            "opt2_terminal_run": "Opción 2: Terminal (Descargar y Ejecutar)",
+            "quick_install": "Instalación Rápida",
+            "deb_step1": "Descarga el paquete <code>.deb</code> usando el botón de arriba.",
+            "deb_step2": "Abre tu gestor de archivos, ve a <strong>Descargas</strong> y haz doble clic en <code data-filename=\"deb\">{filename}</code>.",
+            "deb_step3": "El Centro de Software de tu sistema (App Center / GDebi) se abrirá automáticamente &mdash; haz clic en <strong>Instalar</strong> e introduce tu contraseña.",
+            "rpm_step1": "Descarga el paquete <code>.rpm</code> usando el botón de arriba.",
+            "rpm_step2": "Abre <strong>Archivos</strong>, ve a <strong>Descargas</strong> y haz doble clic en <code data-filename=\"rpm\">{filename}</code>.",
+            "rpm_step3": "GNOME Software / KDE Discover abrirá la página del paquete &mdash; haz clic en <strong>Instalar</strong> para completar.",
+            "appimage_step1": "Descarga <code data-filename=\"appimage\">{filename}</code>.",
+            "appimage_step2": "Haz clic derecho en el archivo &rarr; <strong>Propiedades</strong> &rarr; <strong>Permisos</strong> y activa <em>Permitir ejecutar el archivo como un programa</em>.",
+            "appimage_step3": "Haz doble clic en el archivo AppImage para ejecutar FallByte inmediatamente.",
+            "appimage_curl_comment": "# Asegúrate de tener curl instalado (ej.: sudo pacman -Syu --needed curl)",
+            "win_step1": "Descarga y haz doble clic en <code data-filename=\"windows\">{filename}</code> para iniciar el asistente de instalación.",
+            "win_step2": "Sigue las instrucciones en pantalla para finalizar la instalación de FallByte.",
+            "smartscreen_title": "Aviso de Smart App Control y SmartScreen de Windows",
+            "smartscreen_p1": "Dado que FallByte es un proyecto gratuito, independiente y de código abierto sin un certificado comercial EV Code-Signing de pago, <strong>Smart App Control</strong> de Windows 11 puede bloquear la ejecución del instalador (o SmartScreen puede mostrar <em>\"Windows protegió su PC\"</em>).",
+            "smartscreen_p2": "Para continuar: si aparece SmartScreen, haz clic en <strong>Más información</strong> &rarr; <strong>Ejecutar de todas formas</strong>. Si <strong>Smart App Control</strong> lo bloquea en Windows 11, abre la <strong>Configuración de Smart App Control</strong> usando el acceso directo de abajo y cámbialo a <strong>Desactivado</strong>.",
+            "smartscreen_btn": "Abrir Configuración de Smart App Control"
+        }
+    }
+}
+</file>
+
+<file path="locales/fr.json">
+{
+    "meta": {
+        "home_title": "FallByte — Transformez vos médias. Préservez votre vie privée.",
+        "home_description": "Transformez vos médias. Préservez votre vie privée. Une boîte à outils multimédia rapide, légère et hors ligne pour images, vidéos et audio.",
+        "downloads_title": "Téléchargements — FallByte",
+        "downloads_description": "Téléchargez FallByte pour Windows (.exe) et Linux (.DEB, .RPM et .AppImage) avec des guides d'installation étape par étape."
+    },
+    "common": {
+        "version_badge": "v{version} • Open Source",
+        "footer_built_by": "Créé par",
+        "copied": "Copié !",
+        "copy_command": "Copier la commande",
+        "copy_failed": "Échec de la copie",
+        "for_you": "POUR VOUS"
+    },
+    "hero": {
+        "downloads_badge_title": "Nombre total de téléchargements GitHub pour cette version",
+        "downloads_count_singular": "{count} téléchargement (v{version})",
+        "downloads_count_plural": "{count} téléchargements (v{version})",
+        "subtitle": "Transformez vos médias. Préservez votre vie privée. Une boîte à outils multimédia rapide, légère et hors ligne pour images, vidéos et audio.",
+        "cta_download": "Télécharger",
+        "cta_github": "GitHub",
+        "screenshot_alt": "Interface de FallByte",
+        "screenshot_main_label": "Interface Principale",
+        "screenshot_placeholder": "Ajoutez votre capture d'écran dans <code>screenshots/preview.png</code>"
+    },
+    "downloads": {
+        "back_home": "Retour à l'accueil",
+        "title": "Téléchargements",
+        "subtitle": "Sélectionnez votre système d'exploitation pour télécharger la dernière version (<span id=\"version-badge\">v{version} &bull; Open Source</span>) et consulter les étapes d'installation.",
+        "labels": {
+            "windows": "Télécharger l'installateur Windows (v{version})",
+            "deb": "Télécharger le paquet .DEB (v{version})",
+            "rpm": "Télécharger le paquet .RPM (v{version})",
+            "appimage": "Télécharger le binaire .AppImage (v{version})"
+        },
+        "os": {
+            "debian_title": "Ubuntu / Debian",
+            "debian_desc": "Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)",
+            "fedora_title": "Fedora / RedHat",
+            "fedora_desc": "Fedora, RHEL, openSUSE, Rocky Linux (.RPM)",
+            "appimage_title": "Linux Portable",
+            "appimage_desc": "Arch, Manjaro, SteamOS et autres distributions (.AppImage)",
+            "windows_title": "Windows",
+            "windows_desc": "Windows 10 et 11 (64 bits) • Installateur (.exe)"
+        },
+        "guides": {
+            "opt1_gui": "Option 1 : Logithèque graphique",
+            "opt1_file_manager": "Option 1 : Gestionnaire de fichiers (Sans installation)",
+            "opt2_terminal": "Option 2 : Terminal (Télécharger et installer)",
+            "opt2_terminal_run": "Option 2 : Terminal (Télécharger et exécuter)",
+            "quick_install": "Installation rapide",
+            "deb_step1": "Téléchargez le paquet <code>.deb</code> à l'aide du bouton ci-dessus.",
+            "deb_step2": "Ouvrez votre gestionnaire de fichiers, allez dans <strong>Téléchargements</strong> et double-cliquez sur <code data-filename=\"deb\">{filename}</code>.",
+            "deb_step3": "La logithèque de votre système (App Center / GDebi) s'ouvrira automatiquement &mdash; cliquez sur <strong>Installer</strong> et saisissez votre mot de passe.",
+            "rpm_step1": "Téléchargez le paquet <code>.rpm</code> à l'aide du bouton ci-dessus.",
+            "rpm_step2": "Ouvrez <strong>Fichiers</strong>, allez dans <strong>Téléchargements</strong> et double-cliquez sur <code data-filename=\"rpm\">{filename}</code>.",
+            "rpm_step3": "GNOME Logiciels / KDE Discover ouvrira la page du paquet &mdash; cliquez sur <strong>Installer</strong> pour terminer.",
+            "appimage_step1": "Téléchargez <code data-filename=\"appimage\">{filename}</code>.",
+            "appimage_step2": "Faites un clic droit sur le fichier &rarr; <strong>Propriétés</strong> &rarr; <strong>Permissions</strong> et cochez <em>Autoriser l'exécution du fichier comme un programme</em>.",
+            "appimage_step3": "Double-cliquez sur le fichier AppImage pour lancer FallByte immédiatement.",
+            "appimage_curl_comment": "# Assurez-vous que curl est installé (ex. : sudo pacman -Syu --needed curl)",
+            "win_step1": "Téléchargez et double-cliquez sur <code data-filename=\"windows\">{filename}</code> pour lancer l'assistant d'installation.",
+            "win_step2": "Suivez les instructions à l'écran pour terminer l'installation de FallByte.",
+            "smartscreen_title": "Avis Windows Smart App Control et SmartScreen",
+            "smartscreen_p1": "FallByte étant un projet open-source gratuit et indépendant sans certificat commercial payant EV Code-Signing, le contrôle <strong>Smart App Control</strong> de Windows 11 peut bloquer l'exécution de l'installateur (ou SmartScreen peut afficher <em>« Windows a protégé votre ordinateur »</em>).",
+            "smartscreen_p2": "Pour continuer : si SmartScreen s'affiche, cliquez sur <strong>Informations complémentaires</strong> &rarr; <strong>Exécuter quand même</strong>. Si <strong>Smart App Control</strong> le bloque sous Windows 11, ouvrez les <strong>Paramètres Smart App Control</strong> via le raccourci ci-dessous et passez-le sur <strong>Désactivé</strong>.",
+            "smartscreen_btn": "Ouvrir les paramètres Smart App Control"
+        }
+    }
+}
+</file>
+
+<file path="locales/it.json">
+{
+    "meta": {
+        "home_title": "FallByte — Trasforma i tuoi file multimediali. Proteggi la tua privacy.",
+        "home_description": "Trasforma i tuoi file multimediali. Proteggi la tua privacy. Un toolkit multimediale veloce, leggero e offline per immagini, video e audio.",
+        "downloads_title": "Download — FallByte",
+        "downloads_description": "Scarica FallByte per Windows (.exe) e Linux (.DEB, .RPM e .AppImage) con guide all'installazione passo dopo passo."
+    },
+    "common": {
+        "version_badge": "v{version} • Open Source",
+        "footer_built_by": "Creato da",
+        "copied": "Copiato!",
+        "copy_command": "Copia comando",
+        "copy_failed": "Copia non riuscita",
+        "for_you": "PER TE"
+    },
+    "hero": {
+        "downloads_badge_title": "Download totali su GitHub per questa versione",
+        "downloads_count_singular": "{count} download (v{version})",
+        "downloads_count_plural": "{count} download (v{version})",
+        "subtitle": "Trasforma i tuoi file multimediali. Proteggi la tua privacy. Un toolkit multimediale veloce, leggero e offline per immagini, video e audio.",
+        "cta_download": "Scarica Ora",
+        "cta_github": "GitHub",
+        "screenshot_alt": "Interfaccia di FallByte",
+        "screenshot_main_label": "Interfaccia Principale",
+        "screenshot_placeholder": "Aggiungi il tuo screenshot in <code>screenshots/preview.png</code>"
+    },
+    "downloads": {
+        "back_home": "Torna alla Home",
+        "title": "Download",
+        "subtitle": "Seleziona il tuo sistema operativo per scaricare l'ultima versione (<span id=\"version-badge\">v{version} &bull; Open Source</span>) e visualizzare i passaggi di installazione.",
+        "labels": {
+            "windows": "Scarica Installer per Windows (v{version})",
+            "deb": "Scarica Pacchetto .DEB (v{version})",
+            "rpm": "Scarica Pacchetto .RPM (v{version})",
+            "appimage": "Scarica Binario .AppImage (v{version})"
+        },
+        "os": {
+            "debian_title": "Ubuntu / Debian",
+            "debian_desc": "Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)",
+            "fedora_title": "Fedora / RedHat",
+            "fedora_desc": "Fedora, RHEL, openSUSE, Rocky Linux (.RPM)",
+            "appimage_title": "Linux Portatile",
+            "appimage_desc": "Arch, Manjaro, SteamOS e altre distro (.AppImage)",
+            "windows_title": "Windows",
+            "windows_desc": "Windows 10 e 11 (64-bit) • Installer (.exe)"
+        },
+        "guides": {
+            "opt1_gui": "Opzione 1: Centro Software Grafico",
+            "opt1_file_manager": "Opzione 1: File Manager (Nessuna installazione richiesta)",
+            "opt2_terminal": "Opzione 2: Terminale (Scarica e Installa)",
+            "opt2_terminal_run": "Opzione 2: Terminale (Scarica ed Esegui)",
+            "quick_install": "Installazione Rapida",
+            "deb_step1": "Scarica il pacchetto <code>.deb</code> usando il pulsante qui sopra.",
+            "deb_step2": "Apri il file manager, vai su <strong>Scaricati</strong> e fai doppio clic su <code data-filename=\"deb\">{filename}</code>.",
+            "deb_step3": "Il Centro Software del sistema (App Center / GDebi) si aprirà automaticamente &mdash; clicca su <strong>Installa</strong> e inserisci la tua password.",
+            "rpm_step1": "Scarica il pacchetto <code>.rpm</code> usando il pulsante qui sopra.",
+            "rpm_step2": "Apri <strong>File</strong>, vai su <strong>Scaricati</strong> e fai doppio clic su <code data-filename=\"rpm\">{filename}</code>.",
+            "rpm_step3": "GNOME Software / KDE Discover aprirà la pagina del pacchetto &mdash; clicca su <strong>Installa</strong> per completare.",
+            "appimage_step1": "Scarica <code data-filename=\"appimage\">{filename}</code>.",
+            "appimage_step2": "Fai clic destro sul file &rarr; <strong>Proprietà</strong> &rarr; <strong>Permessi</strong> e attiva <em>Consenti l'esecuzione del file come programma</em>.",
+            "appimage_step3": "Fai doppio clic sul file AppImage per avviare subito FallByte.",
+            "appimage_curl_comment": "# Assicurati che curl sia installato (es. sudo pacman -Syu --needed curl)",
+            "win_step1": "Scarica e fai doppio clic su <code data-filename=\"windows\">{filename}</code> per avviare la procedura guidata di installazione.",
+            "win_step2": "Segui le istruzioni sullo schermo per completare l'installazione di FallByte.",
+            "smartscreen_title": "Avviso Smart App Control e SmartScreen di Windows",
+            "smartscreen_p1": "Poiché FallByte è un progetto open-source gratuito e indipendente privo di un certificato commerciale a pagamento EV Code-Signing, <strong>Smart App Control</strong> di Windows 11 potrebbe bloccare l'esecuzione dell'installer (oppure SmartScreen potrebbe mostrare <em>\"Windows ha protetto il PC\"</em>).",
+            "smartscreen_p2": "Per procedere: se appare SmartScreen, clicca su <strong>Ulteriori informazioni</strong> &rarr; <strong>Esegui comunque</strong>. Se <strong>Smart App Control</strong> lo blocca su Windows 11, apri le <strong>Impostazioni di Smart App Control</strong> tramite il collegamento qui sotto e impostalo su <strong>Disattivato</strong>.",
+            "smartscreen_btn": "Apri Impostazioni Smart App Control"
+        }
+    }
+}
+</file>
+
+<file path="locales/ja.json">
+{
+  "meta": {
+    "home_title": "FallByte — メディアを変換。プライバシーはそのまま。",
+    "home_description": "メディアを変換。プライバシーはそのまま。画像・動画・音声に対応した高速・軽量・オフラインのメディアツールキット。",
+    "downloads_title": "ダウンロード — FallByte",
+    "downloads_description": "Windows (.exe) および Linux (.DEB, .RPM, .AppImage) 向けの FallByte をステップバイステップのインストール手順付きでダウンロード。"
+  },
+  "common": {
+    "version_badge": "v{version} • オープンソース",
+    "footer_built_by": "開発:",
+    "copied": "コピーしました！",
+    "copy_command": "コマンドをコピー",
+    "copy_failed": "コピーに失敗しました",
+    "for_you": "おすすめ"
+  },
+  "hero": {
+    "downloads_badge_title": "このバージョンの GitHub リリース総ダウンロード数",
+    "downloads_count_singular": "{count} ダウンロード (v{version})",
+    "downloads_count_plural": "{count} ダウンロード (v{version})",
+    "subtitle": "メディアを変換。プライバシーはそのまま。画像・動画・音声に対応した高速・軽量・オフラインのメディアツールキット。",
+    "cta_download": "今すぐダウンロード",
+    "cta_github": "GitHub",
+    "screenshot_alt": "FallByte インターフェース",
+    "screenshot_main_label": "メイン画面",
+    "screenshot_placeholder": "スクリーンショットを <code>screenshots/preview.png</code> に追加してください"
+  },
+  "downloads": {
+    "back_home": "ホームに戻る",
+    "title": "ダウンロード",
+    "subtitle": "お使いの OS を選択して最新リリース (<span id=\"version-badge\">v{version} &bull; オープンソース</span>) をダウンロードし、インストール手順を確認してください。",
+    "labels": {
+      "windows": "Windows インストーラーをダウンロード (v{version})",
+      "deb": ".DEB パッケージをダウンロード (v{version})",
+      "rpm": ".RPM パッケージをダウンロード (v{version})",
+      "appimage": ".AppImage バイナリをダウンロード (v{version})"
+    },
+    "os": {
+      "debian_title": "Ubuntu / Debian",
+      "debian_desc": "Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)",
+      "fedora_title": "Fedora / RedHat",
+      "fedora_desc": "Fedora, RHEL, openSUSE, Rocky Linux (.RPM)",
+      "appimage_title": "ポータブル Linux",
+      "appimage_desc": "Arch, Manjaro, SteamOS などのディストリビューション (.AppImage)",
+      "windows_title": "Windows",
+      "windows_desc": "Windows 10 および 11 (64ビット) • インストーラー (.exe)"
+    },
+    "guides": {
+      "opt1_gui": "方法 1: グラフィカルなソフトウェアセンター",
+      "opt1_file_manager": "方法 1: ファイルマネージャー（インストール不要）",
+      "opt2_terminal": "方法 2: ターミナル（ダウンロードとインストール）",
+      "opt2_terminal_run": "方法 2: ターミナル（ダウンロードと実行）",
+      "quick_install": "クイックインストール",
+      "deb_step1": "上のボタンから <code>.deb</code> パッケージをダウンロードします。",
+      "deb_step2": "ファイルマネージャーを開き、<strong>ダウンロード</strong> に移動して <code data-filename=\"deb\">{filename}</code> をダブルクリックします。",
+      "deb_step3": "システムのソフトウェアセンター (App Center / GDebi) が自動的に開きます &mdash; <strong>インストール</strong> をクリックしてパスワードを入力してください。",
+      "rpm_step1": "上のボタンから <code>.rpm</code> パッケージをダウンロードします。",
+      "rpm_step2": "<strong>ファイル</strong> を開き、<strong>ダウンロード</strong> に移動して <code data-filename=\"rpm\">{filename}</code> をダブルクリックします。",
+      "rpm_step3": "GNOME Software / KDE Discover でパッケージページが開きます &mdash; <strong>インストール</strong> をクリックして完了です。",
+      "appimage_step1": "<code data-filename=\"appimage\">{filename}</code> をダウンロードします。",
+      "appimage_step2": "ファイルを右クリック &rarr; <strong>プロパティ</strong> &rarr; <strong>アクセス権</strong> を開き、<em>プログラムとして実行可能</em> を有効にします。",
+      "appimage_step3": "AppImage ファイルをダブルクリックすると、すぐに FallByte が起動します。",
+      "appimage_curl_comment": "# curl がインストールされていることを確認してください（例: sudo pacman -Syu --needed curl）",
+      "win_step1": "<code data-filename=\"windows\">{filename}</code> をダウンロードしてダブルクリックし、セットアップウィザードを起動します。",
+      "win_step2": "画面の指示に従って FallByte のインストールを完了してください。",
+      "smartscreen_title": "Windows Smart App Control と SmartScreen に関する注意",
+      "smartscreen_p1": "FallByte は有償の商用 EV コードサイニング証明書を持たない無料の独立系オープンソースプロジェクトであるため、Windows 11 の <strong>Smart App Control</strong> がインストーラーの実行をブロックする場合があります（または SmartScreen に<em>「Windows によって PC が保護されました」</em>と表示されることがあります）。",
+      "smartscreen_p2": "続行するには: SmartScreen が表示された場合は <strong>詳細情報</strong> &rarr; <strong>実行</strong> をクリックしてください。Windows 11 で <strong>Smart App Control</strong> にブロックされた場合は、下のショートカットから <strong>Smart App Control の設定</strong> を開き、<strong>オフ</strong> に切り替えてください。",
+      "smartscreen_btn": "Smart App Control の設定を開く"
+    }
+  }
+}
+</file>
+
+<file path="locales/ko.json">
+{
+    "meta": {
+        "home_title": "FallByte — 미디어를 변환하세요. 프라이버시는 그대로.",
+        "home_description": "미디어를 변환하세요. 프라이버시는 그대로. 이미지, 동영상, 오디오를 위한 빠르고 가벼운 오프라인 미디어 툴킷입니다.",
+        "downloads_title": "다운로드 — FallByte",
+        "downloads_description": "단계별 설치 가이드와 함께 Windows(.exe) 및 Linux(.DEB, .RPM, .AppImage)용 FallByte를 다운로드하세요."
+    },
+    "common": {
+        "version_badge": "v{version} • 오픈 소스",
+        "footer_built_by": "제작:",
+        "copied": "복사됨!",
+        "copy_command": "명령어 복사",
+        "copy_failed": "복사 실패",
+        "for_you": "추천"
+    },
+    "hero": {
+        "downloads_badge_title": "이 버전의 전체 GitHub 릴리스 다운로드 수",
+        "downloads_count_singular": "{count}회 다운로드 (v{version})",
+        "downloads_count_plural": "{count}회 다운로드 (v{version})",
+        "subtitle": "미디어를 변환하세요. 프라이버시는 그대로. 이미지, 동영상, 오디오를 위한 빠르고 가벼운 오프라인 미디어 툴킷입니다.",
+        "cta_download": "지금 다운로드",
+        "cta_github": "GitHub",
+        "screenshot_alt": "FallByte 인터페이스",
+        "screenshot_main_label": "메인 화면",
+        "screenshot_placeholder": "<code>screenshots/preview.png</code> 경로에 스크린샷을 추가하세요"
+    },
+    "downloads": {
+        "back_home": "홈으로 돌아가기",
+        "title": "다운로드",
+        "subtitle": "운영체제를 선택하여 최신 릴리스(<span id=\"version-badge\">v{version} &bull; 오픈 소스</span>)를 다운로드하고 설치 단계를 확인하세요.",
+        "labels": {
+            "windows": "Windows 설치 프로그램 다운로드 (v{version})",
+            "deb": ".DEB 패키지 다운로드 (v{version})",
+            "rpm": ".RPM 패키지 다운로드 (v{version})",
+            "appimage": ".AppImage 바이너리 다운로드 (v{version})"
+        },
+        "os": {
+            "debian_title": "Ubuntu / Debian",
+            "debian_desc": "Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)",
+            "fedora_title": "Fedora / RedHat",
+            "fedora_desc": "Fedora, RHEL, openSUSE, Rocky Linux (.RPM)",
+            "appimage_title": "포터블 Linux",
+            "appimage_desc": "Arch, Manjaro, SteamOS 및 기타 배포판 (.AppImage)",
+            "windows_title": "Windows",
+            "windows_desc": "Windows 10 및 11 (64비트) • 설치 프로그램 (.exe)"
+        },
+        "guides": {
+            "opt1_gui": "옵션 1: 그래픽 소프트웨어 센터",
+            "opt1_file_manager": "옵션 1: 파일 관리자 (설치 불필요)",
+            "opt2_terminal": "옵션 2: 터미널 (다운로드 및 설치)",
+            "opt2_terminal_run": "옵션 2: 터미널 (다운로드 및 실행)",
+            "quick_install": "빠른 설치",
+            "deb_step1": "위 버튼을 사용하여 <code>.deb</code> 패키지를 다운로드합니다.",
+            "deb_step2": "파일 관리자를 열고 <strong>다운로드</strong> 폴더로 이동한 뒤 <code data-filename=\"deb\">{filename}</code>을(를) 더블클릭합니다.",
+            "deb_step3": "시스템의 소프트웨어 센터(App Center / GDebi)가 자동으로 열립니다 &mdash; <strong>설치</strong>를 클릭하고 비밀번호를 입력하세요.",
+            "rpm_step1": "위 버튼을 사용하여 <code>.rpm</code> 패키지를 다운로드합니다.",
+            "rpm_step2": "<strong>파일</strong>을 열고 <strong>다운로드</strong> 폴더로 이동한 뒤 <code data-filename=\"rpm\">{filename}</code>을(를) 더블클릭합니다.",
+            "rpm_step3": "GNOME Software / KDE Discover에서 패키지 페이지가 열립니다 &mdash; <strong>설치</strong>를 클릭하여 설정을 완료하세요.",
+            "appimage_step1": "<code data-filename=\"appimage\">{filename}</code>을(를) 다운로드합니다.",
+            "appimage_step2": "파일을 마우스 오른쪽 버튼으로 클릭 &rarr; <strong>속성</strong> &rarr; <strong>권한</strong>에서 <em>파일을 프로그램으로 실행 허용</em>을 활성화합니다.",
+            "appimage_step3": "AppImage 파일을 더블클릭하면 FallByte가 즉시 실행됩니다.",
+            "appimage_curl_comment": "# curl이 설치되어 있는지 확인하세요 (예: sudo pacman -Syu --needed curl)",
+            "win_step1": "<code data-filename=\"windows\">{filename}</code>을(를) 다운로드하고 더블클릭하여 설치 마법사를 실행합니다.",
+            "win_step2": "화면의 안내에 따라 FallByte 설치를 완료하세요.",
+            "smartscreen_title": "Windows Smart App Control 및 SmartScreen 안내",
+            "smartscreen_p1": "FallByte는 유료 상용 EV 코드 서명 인증서가 없는 무료 독립 오픈 소스 프로젝트이므로, Windows 11의 <strong>Smart App Control</strong>이 설치 프로그램 실행을 차단할 수 있습니다(또는 SmartScreen에 <em>\"Windows의 PC 보호\"</em> 메시지가 표시될 수 있습니다).",
+            "smartscreen_p2": "계속 진행하려면: SmartScreen이 나타나면 <strong>추가 정보</strong> &rarr; <strong>실행</strong>을 클릭하세요. Windows 11에서 <strong>Smart App Control</strong>이 차단하는 경우 아래 바로가기를 통해 <strong>Smart App Control 설정</strong>을 열고 <strong>끔</strong>으로 전환하세요.",
+            "smartscreen_btn": "Smart App Control 설정 열기"
+        }
+    }
+}
+</file>
+
+<file path="locales/pt.json">
+{
+    "meta": {
+        "home_title": "FallByte — Transforme suas mídias. Mantenha sua privacidade.",
+        "home_description": "Transforme suas mídias. Mantenha sua privacidade. Um kit de ferramentas rápido, leve e offline para imagens, vídeos e áudios.",
+        "downloads_title": "Downloads — FallByte",
+        "downloads_description": "Baixe o FallByte para Windows (.exe) e Linux (.DEB, .RPM e .AppImage) com guias de instalação passo a passo."
+    },
+    "common": {
+        "version_badge": "v{version} • Código Aberto",
+        "footer_built_by": "Criado por",
+        "copied": "Copiado!",
+        "copy_command": "Copiar comando",
+        "copy_failed": "Falha ao copiar",
+        "for_you": "PARA VOCÊ"
+    },
+    "hero": {
+        "downloads_badge_title": "Total de downloads no GitHub para esta versão",
+        "downloads_count_singular": "{count} download (v{version})",
+        "downloads_count_plural": "{count} downloads (v{version})",
+        "subtitle": "Transforme suas mídias. Mantenha sua privacidade. Um kit de ferramentas rápido, leve e offline para imagens, vídeos e áudios.",
+        "cta_download": "Baixar Agora",
+        "cta_github": "GitHub",
+        "screenshot_alt": "Interface do FallByte",
+        "screenshot_main_label": "Interface Principal",
+        "screenshot_placeholder": "Adicione sua captura de tela em <code>screenshots/preview.png</code>"
+    },
+    "downloads": {
+        "back_home": "Voltar ao Início",
+        "title": "Downloads",
+        "subtitle": "Selecione seu sistema operacional para baixar a versão mais recente (<span id=\"version-badge\">v{version} &bull; Código Aberto</span>) e ver os passos de instalação.",
+        "labels": {
+            "windows": "Baixar Instalador Windows (v{version})",
+            "deb": "Baixar Pacote .DEB (v{version})",
+            "rpm": "Baixar Pacote .RPM (v{version})",
+            "appimage": "Baixar Binário .AppImage (v{version})"
+        },
+        "os": {
+            "debian_title": "Ubuntu / Debian",
+            "debian_desc": "Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)",
+            "fedora_title": "Fedora / RedHat",
+            "fedora_desc": "Fedora, RHEL, openSUSE, Rocky Linux (.RPM)",
+            "appimage_title": "Linux Portátil",
+            "appimage_desc": "Arch, Manjaro, SteamOS e outras distros (.AppImage)",
+            "windows_title": "Windows",
+            "windows_desc": "Windows 10 e 11 (64 bits) • Instalador (.exe)"
+        },
+        "guides": {
+            "opt1_gui": "Opção 1: Central de Programas Gráfica",
+            "opt1_file_manager": "Opção 1: Gerenciador de Arquivos (Sem Instalação)",
+            "opt2_terminal": "Opção 2: Terminal (Baixar e Instalar)",
+            "opt2_terminal_run": "Opção 2: Terminal (Baixar e Executar)",
+            "quick_install": "Instalação Rápida",
+            "deb_step1": "Baixe o pacote <code>.deb</code> usando o botão acima.",
+            "deb_step2": "Abra seu gerenciador de arquivos, vá até <strong>Downloads</strong> e dê um clique duplo em <code data-filename=\"deb\">{filename}</code>.",
+            "deb_step3": "A Central de Programas do sistema (App Center / GDebi) abrirá automaticamente &mdash; clique em <strong>Instalar</strong> e digite sua senha.",
+            "rpm_step1": "Baixe o pacote <code>.rpm</code> usando o botão acima.",
+            "rpm_step2": "Abra <strong>Arquivos</strong>, vá até <strong>Downloads</strong> e dê um clique duplo em <code data-filename=\"rpm\">{filename}</code>.",
+            "rpm_step3": "O GNOME Software / KDE Discover abrirá a página do pacote &mdash; clique em <strong>Instalar</strong> para concluir.",
+            "appimage_step1": "Baixe <code data-filename=\"appimage\">{filename}</code>.",
+            "appimage_step2": "Clique com o botão direito no arquivo &rarr; <strong>Propriedades</strong> &rarr; <strong>Permissões</strong> e marque <em>Permitir execução do arquivo como um programa</em>.",
+            "appimage_step3": "Dê um clique duplo no arquivo AppImage para executar o FallByte imediatamente.",
+            "appimage_curl_comment": "# Certifique-se de que o curl está instalado (ex.: sudo pacman -Syu --needed curl)",
+            "win_step1": "Baixe e dê um clique duplo em <code data-filename=\"windows\">{filename}</code> para iniciar o assistente de instalação.",
+            "win_step2": "Siga as instruções na tela para concluir a instalação do FallByte.",
+            "smartscreen_title": "Aviso do Smart App Control e SmartScreen do Windows",
+            "smartscreen_p1": "Como o FallByte é um projeto gratuito, independente e de código aberto sem um certificado comercial pago EV Code-Signing, o <strong>Smart App Control</strong> do Windows 11 pode bloquear a execução do instalador (ou o SmartScreen pode exibir <em>\"O Windows protegeu o seu computador\"</em>).",
+            "smartscreen_p2": "Para continuar: se o SmartScreen aparecer, clique em <strong>Mais informações</strong> &rarr; <strong>Executar assim mesmo</strong>. Se o <strong>Smart App Control</strong> bloquear no Windows 11, abra as <strong>Configurações do Smart App Control</strong> pelo atalho abaixo e mude para <strong>Desativado</strong>.",
+            "smartscreen_btn": "Abrir Configurações do Smart App Control"
+        }
+    }
+}
+</file>
+
+<file path="locales/ru.json">
+{
+    "meta": {
+        "home_title": "FallByte — Преобразуйте медиафайлы. Сохраняйте приватность.",
+        "home_description": "Преобразуйте медиафайлы. Сохраняйте приватность. Быстрый, лёгкий и автономный набор инструментов для изображений, видео и аудио.",
+        "downloads_title": "Загрузки — FallByte",
+        "downloads_description": "Скачайте FallByte для Windows (.exe) и Linux (.DEB, .RPM и .AppImage) с пошаговыми инструкциями по установке."
+    },
+    "common": {
+        "version_badge": "v{version} • Открытый исходный код",
+        "footer_built_by": "Автор:",
+        "copied": "Скопировано!",
+        "copy_command": "Копировать команду",
+        "copy_failed": "Ошибка копирования",
+        "for_you": "ДЛЯ ВАС"
+    },
+    "hero": {
+        "downloads_badge_title": "Всего загрузок релиза на GitHub для этой версии",
+        "downloads_count_singular": "{count} загрузка (v{version})",
+        "downloads_count_plural": "{count} загрузок (v{version})",
+        "subtitle": "Преобразуйте медиафайлы. Сохраняйте приватность. Быстрый, лёгкий и автономный набор инструментов для изображений, видео и аудио.",
+        "cta_download": "Скачать",
+        "cta_github": "GitHub",
+        "screenshot_alt": "Интерфейс FallByte",
+        "screenshot_main_label": "Главный экран",
+        "screenshot_placeholder": "Добавьте скриншот в <code>screenshots/preview.png</code>"
+    },
+    "downloads": {
+        "back_home": "На главную",
+        "title": "Загрузки",
+        "subtitle": "Выберите вашу операционную систему, чтобы скачать последнюю версию (<span id=\"version-badge\">v{version} &bull; Открытый исходный код</span>) и посмотреть инструкцию по установке.",
+        "labels": {
+            "windows": "Скачать установщик Windows (v{version})",
+            "deb": "Скачать пакет .DEB (v{version})",
+            "rpm": "Скачать пакет .RPM (v{version})",
+            "appimage": "Скачать файл .AppImage (v{version})"
+        },
+        "os": {
+            "debian_title": "Ubuntu / Debian",
+            "debian_desc": "Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)",
+            "fedora_title": "Fedora / RedHat",
+            "fedora_desc": "Fedora, RHEL, openSUSE, Rocky Linux (.RPM)",
+            "appimage_title": "Портативный Linux",
+            "appimage_desc": "Arch, Manjaro, SteamOS и другие дистрибутивы (.AppImage)",
+            "windows_title": "Windows",
+            "windows_desc": "Windows 10 и 11 (64-бит) • Установщик (.exe)"
+        },
+        "guides": {
+            "opt1_gui": "Вариант 1: Графический центр приложений",
+            "opt1_file_manager": "Вариант 1: Файловый менеджер (без установки)",
+            "opt2_terminal": "Вариант 2: Терминал (скачать и установить)",
+            "opt2_terminal_run": "Вариант 2: Терминал (скачать и запустить)",
+            "quick_install": "Быстрая установка",
+            "deb_step1": "Скачайте пакет <code>.deb</code> с помощью кнопки выше.",
+            "deb_step2": "Откройте файловый менеджер, перейдите в <strong>Загрузки</strong> и дважды щёлкните по <code data-filename=\"deb\">{filename}</code>.",
+            "deb_step3": "Центр приложений вашей системы (App Center / GDebi) откроется автоматически &mdash; нажмите <strong>Установить</strong> и введите пароль.",
+            "rpm_step1": "Скачайте пакет <code>.rpm</code> с помощью кнопки выше.",
+            "rpm_step2": "Откройте <strong>Файлы</strong>, перейдите в <strong>Загрузки</strong> и дважды щёлкните по <code data-filename=\"rpm\">{filename}</code>.",
+            "rpm_step3": "GNOME Software / KDE Discover откроет страницу пакета &mdash; нажмите <strong>Установить</strong> для завершения.",
+            "appimage_step1": "Скачайте <code data-filename=\"appimage\">{filename}</code>.",
+            "appimage_step2": "Нажмите правой кнопкой мыши на файл &rarr; <strong>Свойства</strong> &rarr; <strong>Права</strong> и включите <em>Разрешить выполнение файла как программы</em>.",
+            "appimage_step3": "Дважды щёлкните по файлу AppImage, чтобы сразу запустить FallByte.",
+            "appimage_curl_comment": "# Убедитесь, что curl установлен (например: sudo pacman -Syu --needed curl)",
+            "win_step1": "Скачайте и дважды щёлкните по <code data-filename=\"windows\">{filename}</code>, чтобы запустить мастер установки.",
+            "win_step2": "Следуйте инструкциям на экране для завершения установки FallByte.",
+            "smartscreen_title": "Уведомление Windows Smart App Control и SmartScreen",
+            "smartscreen_p1": "Поскольку FallByte — бесплатный независимый проект с открытым исходным кодом без платного коммерческого сертификата EV Code-Signing, функция <strong>Smart App Control</strong> в Windows 11 может заблокировать запуск установщика (или SmartScreen может показать окно <em>«Система Windows защитила ваш компьютер»</em>).",
+            "smartscreen_p2": "Чтобы продолжить: если появилось окно SmartScreen, нажмите <strong>Подробнее</strong> &rarr; <strong>Выполнить в любом случае</strong>. Если запуск блокирует <strong>Smart App Control</strong> в Windows 11, откройте <strong>Параметры Smart App Control</strong> по кнопке ниже и переключите в положение <strong>Откл.</strong>",
+            "smartscreen_btn": "Открыть параметры Smart App Control"
+        }
+    }
+}
+</file>
+
+<file path="locales/zh.json">
+{
+    "meta": {
+        "home_title": "FallByte — 转换你的媒体文件，守护你的隐私。",
+        "home_description": "转换你的媒体文件，守护你的隐私。一款快速、轻量且完全离线的图像、视频和音频处理工具套件。",
+        "downloads_title": "下载 — FallByte",
+        "downloads_description": "下载适用于 Windows (.exe) 和 Linux (.DEB、.RPM 和 .AppImage) 的 FallByte，附带分步安装指南。"
+    },
+    "common": {
+        "version_badge": "v{version} • 开源软件",
+        "footer_built_by": "开发者：",
+        "copied": "已复制！",
+        "copy_command": "复制命令",
+        "copy_failed": "复制失败",
+        "for_you": "推荐"
+    },
+    "hero": {
+        "downloads_badge_title": "此版本在 GitHub 上的总下载量",
+        "downloads_count_singular": "{count} 次下载 (v{version})",
+        "downloads_count_plural": "{count} 次下载 (v{version})",
+        "subtitle": "转换你的媒体文件，守护你的隐私。一款快速、轻量且完全离线的图像、视频和音频处理工具套件。",
+        "cta_download": "立即下载",
+        "cta_github": "GitHub",
+        "screenshot_alt": "FallByte 界面",
+        "screenshot_main_label": "主界面",
+        "screenshot_placeholder": "请将您的截图添加至 <code>screenshots/preview.png</code>"
+    },
+    "downloads": {
+        "back_home": "返回首页",
+        "title": "下载",
+        "subtitle": "选择您的操作系统以下载最新版本 (<span id=\"version-badge\">v{version} &bull; 开源软件</span>) 并查看安装步骤。",
+        "labels": {
+            "windows": "下载 Windows 安装程序 (v{version})",
+            "deb": "下载 .DEB 安装包 (v{version})",
+            "rpm": "下载 .RPM 安装包 (v{version})",
+            "appimage": "下载 .AppImage 可执行文件 (v{version})"
+        },
+        "os": {
+            "debian_title": "Ubuntu / Debian",
+            "debian_desc": "Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)",
+            "fedora_title": "Fedora / RedHat",
+            "fedora_desc": "Fedora, RHEL, openSUSE, Rocky Linux (.RPM)",
+            "appimage_title": "便携版 Linux",
+            "appimage_desc": "Arch, Manjaro, SteamOS 及其他发行版 (.AppImage)",
+            "windows_title": "Windows",
+            "windows_desc": "Windows 10 和 11 (64 位) • 安装程序 (.exe)"
+        },
+        "guides": {
+            "opt1_gui": "方式 1：图形化软件中心",
+            "opt1_file_manager": "方式 1：文件管理器（无需安装）",
+            "opt2_terminal": "方式 2：终端（下载并安装）",
+            "opt2_terminal_run": "方式 2：终端（下载并运行）",
+            "quick_install": "快速安装",
+            "deb_step1": "点击上方按钮下载 <code>.deb</code> 安装包。",
+            "deb_step2": "打开文件管理器，进入 <strong>下载</strong> 文件夹并双击 <code data-filename=\"deb\">{filename}</code>。",
+            "deb_step3": "系统的软件中心 (App Center / GDebi) 将自动打开 &mdash; 点击 <strong>安装</strong> 并输入密码即可。",
+            "rpm_step1": "点击上方按钮下载 <code>.rpm</code> 安装包。",
+            "rpm_step2": "打开 <strong>文件</strong>，进入 <strong>下载</strong> 文件夹并双击 <code data-filename=\"rpm\">{filename}</code>。",
+            "rpm_step3": "GNOME Software / KDE Discover 将打开软件包页面 &mdash; 点击 <strong>安装</strong> 完成设置。",
+            "appimage_step1": "下载 <code data-filename=\"appimage\">{filename}</code>。",
+            "appimage_step2": "右键点击文件 &rarr; <strong>属性</strong> &rarr; <strong>权限</strong>，勾选 <em>允许将文件作为程序执行</em>。",
+            "appimage_step3": "双击 AppImage 文件即可立即运行 FallByte。",
+            "appimage_curl_comment": "# 请确保已安装 curl（例如：sudo pacman -Syu --needed curl）",
+            "win_step1": "下载并双击 <code data-filename=\"windows\">{filename}</code> 启动安装向导。",
+            "win_step2": "按照屏幕提示完成 FallByte 的安装。",
+            "smartscreen_title": "Windows 智能应用控制与 SmartScreen 提示",
+            "smartscreen_p1": "由于 FallByte 是一款免费的独立开源项目，未购买商业 EV 代码签名证书，Windows 11 的 <strong>智能应用控制 (Smart App Control)</strong> 可能会阻止运行安装程序（或 SmartScreen 可能会显示<em>“Windows 已保护你的电脑”</em>）。",
+            "smartscreen_p2": "继续操作的方法：如果出现 SmartScreen 提示，请点击 <strong>更多信息</strong> &rarr; <strong>仍要运行</strong>。如果在 Windows 11 上被 <strong>智能应用控制</strong> 阻止，请通过下方快捷方式打开 <strong>智能应用控制设置</strong> 并将其切换为 <strong>关闭</strong>。",
+            "smartscreen_btn": "打开智能应用控制设置"
+        }
+    }
+}
+</file>
+
 <file path="downloads/index.html">
 <!DOCTYPE html>
 <html lang="en">
@@ -74,8 +1032,8 @@ This section contains the contents of the repository's files.
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Downloads — FallByte</title>
-    <link rel="icon" type="image/png" href="/icons/fallbyte_logo.png" />
-    <link rel="apple-touch-icon" href="/icons/fallbyte_logo.png" />
+    <link rel="icon" type="image/png" href="../icons/fallbyte_logo.png" />
+    <link rel="apple-touch-icon" href="../icons/fallbyte_logo.png" />
     <link rel="canonical" href="https://fallbyte.brunothinker.workers.dev/downloads/" />
     <meta name="description"
         content="Download FallByte for Windows (.exe) and Linux (.DEB, .RPM, and .AppImage) with step-by-step installation guides." />
@@ -89,29 +1047,48 @@ This section contains the contents of the repository's files.
     <meta property="og:url" content="https://fallbyte.brunothinker.workers.dev/downloads/" />
     <meta property="og:image" content="https://fallbyte.brunothinker.workers.dev/screenshots/preview.png" />
 
-    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="../css/style.css" />
 </head>
 
-<body>
+<body data-page="downloads">
     <div class="ambient-glow" aria-hidden="true"></div>
 
     <!-- DOWNLOADS PAGE -->
     <main class="downloads-section" aria-label="Downloads">
         <nav class="subpage-nav" aria-label="Breadcrumb">
-            <a href="/" class="cta-secondary back-home-btn">
+            <a href="../" class="cta-secondary back-home-btn" id="nav-home">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
                     stroke-linejoin="round" aria-hidden="true">
                     <line x1="19" y1="12" x2="5" y2="12" />
                     <polyline points="12 19 5 12 12 5" />
                 </svg>
-                <span>Back to Home</span>
+                <span data-i18n="downloads.back_home"></span>
             </a>
+
+            <div class="lang-switcher" id="lang-switcher">
+                <button type="button" class="lang-toggle" id="lang-toggle" aria-haspopup="listbox" aria-expanded="false"
+                    aria-label="Language">
+                    <svg class="globe-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                        </path>
+                    </svg>
+                    <span id="lang-current-code">EN</span>
+                    <svg class="chevron-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+                <div class="lang-menu" id="lang-menu" role="listbox"></div>
+            </div>
         </nav>
 
         <div class="section-header">
-            <h1>Downloads</h1>
-            <p>Select your operating system to download the latest release (<span id="version-badge">v2.1.0 &bull; Open
-                    Source</span>) and view installation steps.</p>
+            <h1 data-i18n="downloads.title"></h1>
+            <p data-i18n-html="downloads.subtitle"></p>
         </div>
 
         <div class="accordion-list">
@@ -122,10 +1099,10 @@ This section contains the contents of the repository's files.
                         <img class="os-icon" data-icon="ubuntu" src="" alt="Ubuntu / Debian" />
                         <div class="os-text">
                             <div class="os-title-row">
-                                <span class="os-title">Ubuntu / Debian</span>
-                                <span class="recommended-tag" hidden>FOR YOU</span>
+                                <span class="os-title" data-i18n="downloads.os.debian_title"></span>
+                                <span class="recommended-tag" hidden data-i18n="common.for_you"></span>
                             </div>
-                            <span class="os-desc">Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)</span>
+                            <span class="os-desc" data-i18n="downloads.os.debian_desc"></span>
                         </div>
                     </div>
                     <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -143,31 +1120,26 @@ This section contains the contents of the repository's files.
                                 <polyline points="7 10 12 15 17 10" />
                                 <line x1="12" y1="15" x2="12" y2="3" />
                             </svg>
-                            <span id="label-deb">Download (.deb) package</span>
+                            <span id="label-deb"></span>
                         </a>
 
                         <div class="tutorial-slot">
                             <div class="install-guide">
                                 <div class="guide-grid">
                                     <div class="guide-block">
-                                        <h4>Option 1: Graphical Software Center</h4>
+                                        <h4 data-i18n="downloads.guides.opt1_gui"></h4>
                                         <ol>
-                                            <li>Download the <code>.deb</code> package using the button above.</li>
-                                            <li>Open your file manager, navigate to <strong>Downloads</strong>, and
-                                                double-click <code data-filename="deb">fallbyte_2.1.0_amd64.deb</code>.
-                                            </li>
-                                            <li>Your system's Software Center (App Center / GDebi) will open
-                                                automatically &mdash; click
-                                                <strong>Install</strong> and enter your password.
-                                            </li>
+                                            <li data-i18n-html="downloads.guides.deb_step1"></li>
+                                            <li data-i18n-html="downloads.guides.deb_step2" data-os-file="deb"></li>
+                                            <li data-i18n-html="downloads.guides.deb_step3"></li>
                                         </ol>
                                     </div>
 
                                     <div class="guide-block">
-                                        <h4>Option 2: Terminal (Download &amp; Install)</h4>
+                                        <h4 data-i18n="downloads.guides.opt2_terminal"></h4>
                                         <div class="code-box">
                                             <button type="button" class="copy-btn" data-copy-target="cmd-deb"
-                                                title="Copy command" aria-label="Copy command">
+                                                data-i18n-title="common.copy_command" aria-label="Copy command">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -175,9 +1147,7 @@ This section contains the contents of the repository's files.
                                                     </path>
                                                 </svg>
                                             </button>
-                                            <pre><code id="cmd-deb">sudo apt update &amp;&amp; sudo apt install -y curl
-curl -fL https://github.com/brunothinker/FallByte/releases/download/v2.1.0/fallbyte_2.1.0_amd64.deb -o /tmp/fallbyte_2.1.0_amd64.deb
-sudo apt install -y /tmp/fallbyte_2.1.0_amd64.deb &amp;&amp; rm -f /tmp/fallbyte_2.1.0_amd64.deb</code></pre>
+                                            <pre><code id="cmd-deb"></code></pre>
                                         </div>
                                     </div>
                                 </div>
@@ -194,10 +1164,10 @@ sudo apt install -y /tmp/fallbyte_2.1.0_amd64.deb &amp;&amp; rm -f /tmp/fallbyte
                         <img class="os-icon" data-icon="fedora" src="" alt="Fedora / RedHat" />
                         <div class="os-text">
                             <div class="os-title-row">
-                                <span class="os-title">Fedora / RedHat</span>
-                                <span class="recommended-tag" hidden>FOR YOU</span>
+                                <span class="os-title" data-i18n="downloads.os.fedora_title"></span>
+                                <span class="recommended-tag" hidden data-i18n="common.for_you"></span>
                             </div>
-                            <span class="os-desc">Fedora, RHEL, openSUSE, Rocky Linux (.RPM)</span>
+                            <span class="os-desc" data-i18n="downloads.os.fedora_desc"></span>
                         </div>
                     </div>
                     <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -215,30 +1185,26 @@ sudo apt install -y /tmp/fallbyte_2.1.0_amd64.deb &amp;&amp; rm -f /tmp/fallbyte
                                 <polyline points="7 10 12 15 17 10" />
                                 <line x1="12" y1="15" x2="12" y2="3" />
                             </svg>
-                            <span id="label-rpm">Download (.rpm) package</span>
+                            <span id="label-rpm"></span>
                         </a>
 
                         <div class="tutorial-slot">
                             <div class="install-guide">
                                 <div class="guide-grid">
                                     <div class="guide-block">
-                                        <h4>Option 1: Graphical Software Center</h4>
+                                        <h4 data-i18n="downloads.guides.opt1_gui"></h4>
                                         <ol>
-                                            <li>Download the <code>.rpm</code> package using the button above.</li>
-                                            <li>Open <strong>Files</strong>, go to <strong>Downloads</strong>, and
-                                                double-click <code data-filename="rpm">fallbyte_2.1.0_x86_64.rpm</code>.
-                                            </li>
-                                            <li>GNOME Software / KDE Discover will open the package page &mdash; click
-                                                <strong>Install</strong> to complete setup.
-                                            </li>
+                                            <li data-i18n-html="downloads.guides.rpm_step1"></li>
+                                            <li data-i18n-html="downloads.guides.rpm_step2" data-os-file="rpm"></li>
+                                            <li data-i18n-html="downloads.guides.rpm_step3"></li>
                                         </ol>
                                     </div>
 
                                     <div class="guide-block">
-                                        <h4>Option 2: Terminal (Download &amp; Install)</h4>
+                                        <h4 data-i18n="downloads.guides.opt2_terminal"></h4>
                                         <div class="code-box">
                                             <button type="button" class="copy-btn" data-copy-target="cmd-rpm"
-                                                title="Copy command" aria-label="Copy command">
+                                                data-i18n-title="common.copy_command" aria-label="Copy command">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -246,9 +1212,7 @@ sudo apt install -y /tmp/fallbyte_2.1.0_amd64.deb &amp;&amp; rm -f /tmp/fallbyte
                                                     </path>
                                                 </svg>
                                             </button>
-                                            <pre><code id="cmd-rpm">sudo dnf check-update; sudo dnf install -y curl
-curl -fL https://github.com/brunothinker/FallByte/releases/download/v2.1.0/fallbyte_2.1.0_x86_64.rpm -o /tmp/fallbyte_2.1.0_x86_64.rpm
-sudo dnf install -y /tmp/fallbyte_2.1.0_x86_64.rpm &amp;&amp; rm -f /tmp/fallbyte_2.1.0_x86_64.rpm</code></pre>
+                                            <pre><code id="cmd-rpm"></code></pre>
                                         </div>
                                     </div>
                                 </div>
@@ -265,10 +1229,10 @@ sudo dnf install -y /tmp/fallbyte_2.1.0_x86_64.rpm &amp;&amp; rm -f /tmp/fallbyt
                         <img class="os-icon" data-icon="arch" src="" alt="Portable Linux" />
                         <div class="os-text">
                             <div class="os-title-row">
-                                <span class="os-title">Portable Linux</span>
-                                <span class="recommended-tag" hidden>FOR YOU</span>
+                                <span class="os-title" data-i18n="downloads.os.appimage_title"></span>
+                                <span class="recommended-tag" hidden data-i18n="common.for_you"></span>
                             </div>
-                            <span class="os-desc">Arch, Manjaro, SteamOS, and other distros (.AppImage)</span>
+                            <span class="os-desc" data-i18n="downloads.os.appimage_desc"></span>
                         </div>
                     </div>
                     <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -286,29 +1250,27 @@ sudo dnf install -y /tmp/fallbyte_2.1.0_x86_64.rpm &amp;&amp; rm -f /tmp/fallbyt
                                 <polyline points="7 10 12 15 17 10" />
                                 <line x1="12" y1="15" x2="12" y2="3" />
                             </svg>
-                            <span id="label-appimage">Download (.AppImage) binary</span>
+                            <span id="label-appimage"></span>
                         </a>
 
                         <div class="tutorial-slot">
                             <div class="install-guide">
                                 <div class="guide-grid">
                                     <div class="guide-block">
-                                        <h4>Option 1: File Manager (No Installation Needed)</h4>
+                                        <h4 data-i18n="downloads.guides.opt1_file_manager"></h4>
                                         <ol>
-                                            <li>Download <code
-                                                    data-filename="appimage">fallbyte_2.1.0_x86_64.AppImage</code>.</li>
-                                            <li>Right-click the file &rarr; <strong>Properties</strong> &rarr;
-                                                <strong>Permissions</strong>
-                                                and enable <em>Allow executing file as program</em>.</li>
-                                            <li>Double-click the AppImage file to run FallByte immediately.</li>
+                                            <li data-i18n-html="downloads.guides.appimage_step1"
+                                                data-os-file="appImage"></li>
+                                            <li data-i18n-html="downloads.guides.appimage_step2"></li>
+                                            <li data-i18n-html="downloads.guides.appimage_step3"></li>
                                         </ol>
                                     </div>
 
                                     <div class="guide-block">
-                                        <h4>Option 2: Terminal (Download &amp; Run)</h4>
+                                        <h4 data-i18n="downloads.guides.opt2_terminal_run"></h4>
                                         <div class="code-box">
                                             <button type="button" class="copy-btn" data-copy-target="cmd-appimage"
-                                                title="Copy command" aria-label="Copy command">
+                                                data-i18n-title="common.copy_command" aria-label="Copy command">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -316,10 +1278,7 @@ sudo dnf install -y /tmp/fallbyte_2.1.0_x86_64.rpm &amp;&amp; rm -f /tmp/fallbyt
                                                     </path>
                                                 </svg>
                                             </button>
-                                            <pre><code id="cmd-appimage"># Make sure curl is installed (e.g., sudo pacman -Syu --needed curl)
-curl -fLO https://github.com/brunothinker/FallByte/releases/download/v2.1.0/fallbyte_2.1.0_x86_64.AppImage
-chmod +x fallbyte_2.1.0_x86_64.AppImage
-./fallbyte_2.1.0_x86_64.AppImage</code></pre>
+                                            <pre><code id="cmd-appimage"></code></pre>
                                         </div>
                                     </div>
                                 </div>
@@ -336,10 +1295,10 @@ chmod +x fallbyte_2.1.0_x86_64.AppImage
                         <img class="os-icon" data-icon="windows" src="" alt="Windows" />
                         <div class="os-text">
                             <div class="os-title-row">
-                                <span class="os-title">Windows</span>
-                                <span class="recommended-tag" hidden>FOR YOU</span>
+                                <span class="os-title" data-i18n="downloads.os.windows_title"></span>
+                                <span class="recommended-tag" hidden data-i18n="common.for_you"></span>
                             </div>
-                            <span class="os-desc">Windows 10 and 11 (64-bit) &bull; Installer (.exe)</span>
+                            <span class="os-desc" data-i18n="downloads.os.windows_desc"></span>
                         </div>
                     </div>
                     <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -357,39 +1316,23 @@ chmod +x fallbyte_2.1.0_x86_64.AppImage
                                 <polyline points="7 10 12 15 17 10" />
                                 <line x1="12" y1="15" x2="12" y2="3" />
                             </svg>
-                            <span id="label-windows">Download for Windows</span>
+                            <span id="label-windows"></span>
                         </a>
 
                         <div class="tutorial-slot">
                             <div class="install-guide">
                                 <div class="guide-block">
-                                    <h4>Quick Installation</h4>
+                                    <h4 data-i18n="downloads.guides.quick_install"></h4>
                                     <ol>
-                                        <li>Download and double-click <code
-                                                data-filename="windows">fallbyte_2.1.0_x64_installer.exe</code>
-                                            to launch the setup wizard.</li>
-                                        <li>Follow the on-screen prompts to finish installing FallByte.</li>
+                                        <li data-i18n-html="downloads.guides.win_step1" data-os-file="windows"></li>
+                                        <li data-i18n-html="downloads.guides.win_step2"></li>
                                     </ol>
                                 </div>
 
                                 <div class="smartscreen-notice">
-                                    <strong>Windows Smart App Control &amp; SmartScreen Notice</strong>
-                                    <p>
-                                        Because FallByte is a free, independent open-source project without a paid
-                                        commercial EV
-                                        Code-Signing certificate, Windows 11's <strong>Smart App Control</strong> may
-                                        block the installer
-                                        from running (or SmartScreen may show <em>"Windows protected your PC"</em>).
-                                    </p>
-                                    <p>
-                                        To proceed: if SmartScreen appears, click <strong>More info</strong> &rarr;
-                                        <strong>Run
-                                            anyway</strong>. If <strong>Smart App Control</strong> blocks it on Windows
-                                        11, open <strong>Smart
-                                            App Control
-                                            settings</strong> using the shortcut below and switch it to
-                                        <strong>Off</strong>.
-                                    </p>
+                                    <strong data-i18n="downloads.guides.smartscreen_title"></strong>
+                                    <p data-i18n-html="downloads.guides.smartscreen_p1"></p>
+                                    <p data-i18n-html="downloads.guides.smartscreen_p2"></p>
                                     <div style="margin-top: 12px;">
                                         <a href="windowsdefender://smartapp/" class="cta-secondary"
                                             style="padding: 9px 14px; border-radius: 10px; font-size: 0.85rem;">
@@ -398,7 +1341,7 @@ chmod +x fallbyte_2.1.0_x86_64.AppImage
                                                 stroke-linejoin="round" aria-hidden="true">
                                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                                             </svg>
-                                            <span>Open Smart App Control Settings</span>
+                                            <span data-i18n="downloads.guides.smartscreen_btn"></span>
                                         </a>
                                     </div>
                                 </div>
@@ -411,17 +1354,13 @@ chmod +x fallbyte_2.1.0_x86_64.AppImage
     </main>
 
     <footer>
-        <a href="https://github.com/brunothinker/FallByte" target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path
-                    d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-            </svg>
-            github.com/brunothinker/FallByte
-        </a>
+        <span><span data-i18n="common.footer_built_by"></span> <a href="https://github.com/brunothinker" target="_blank"
+                rel="noopener noreferrer">Bruno Thinker</a></span>
     </footer>
 
-    <script src="/js/config.js"></script>
-    <script src="/js/main.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/i18n.js"></script>
+    <script src="../js/main.js"></script>
 
 </body>
 
@@ -954,746 +1893,1239 @@ Sitemap: https://fallbyte.brunothinker.workers.dev/sitemap.xml
 </file>
 
 <file path="css/style.css">
+/* ==========================================================================
+   FallByte — Modern Dark Theme Design System
+   ========================================================================== */
+
 :root {
-  --bg-color: #030712;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --accent: #38bdf8;
-  --accent-hover: #0ea5e9;
+  /* Core Backgrounds */
+  --bg-primary: #090a0f;
+  --bg-secondary: #0f1119;
+  --bg-surface: #151823;
+  --bg-surface-hover: #1c202e;
+  --bg-code: #0b0d13;
 
-  --card-bg: rgba(15, 23, 42, 0.65);
-  --card-border: rgba(255, 255, 255, 0.08);
-  --card-hover-bg: rgba(30, 41, 59, 0.85);
-  --card-hover-border: rgba(255, 255, 255, 0.2);
+  /* Borders */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-accent: rgba(59, 130, 246, 0.45);
 
-  /* Shared container width so showcase, downloads, and community match identically */
-  --content-width: 820px;
+  /* Typography Colors */
+  --text-primary: #f4f6fb;
+  --text-secondary: #a1a9bd;
+  --text-muted: #6b7388;
+
+  /* Brand & Accents */
+  --accent-primary: #3b82f6;
+  --accent-primary-hover: #2563eb;
+  --accent-glow: rgba(59, 130, 246, 0.25);
+  --accent-cyan: #06b6d4;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-purple: #8b5cf6;
+
+  /* Gradients */
+  --gradient-hero: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(59, 130, 246, 0.22), transparent);
+  --gradient-brand: linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #06b6d4 100%);
+  --gradient-card: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0) 100%);
+
+  /* Layout & Spacing */
+  --container-max: 1180px;
+  --header-height: 72px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.65);
+  --shadow-glow: 0 0 32px rgba(59, 130, 246, 0.25);
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 240ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-* {
+/* ==========================================================================
+   Reset & Base
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
 }
 
 html {
   scroll-behavior: smooth;
-  background-color: var(--bg-color);
+  font-size: 16px;
+  color-scheme: dark;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-main);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-height: 100vh;
-  padding: 0 24px 36px 24px;
-  position: relative;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Seamless ambient background glow */
-.ambient-glow {
-  position: absolute;
-  top: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 760px;
-  height: 420px;
-  background: radial-gradient(circle at 50% 45%,
-      rgba(56, 189, 248, 0.16) 0%,
-      rgba(56, 189, 248, 0.07) 35%,
-      rgba(56, 189, 248, 0.02) 60%,
-      rgba(3, 7, 18, 0) 75%);
-  filter: blur(40px);
-  pointer-events: none;
-  z-index: 0;
+main {
+  flex: 1;
 }
 
-/* =========================================================
-   SECTION 1: HERO + SHOWCASE
-   ========================================================= */
-.hero-section {
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+select {
+  font-family: inherit;
+  color: inherit;
+}
+
+code,
+pre {
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.container {
   width: 100%;
-  max-width: var(--content-width);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding-top: 64px;
-  padding-bottom: 48px;
-  z-index: 1;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 24px;
 }
 
-.hero-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  max-width: 660px;
-  margin-bottom: 3rem;
+/* ==========================================================================
+   Navbar
+   ========================================================================== */
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: var(--header-height);
+  background: rgba(9, 10, 15, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.hero-pills {
+.navbar-inner {
+  height: 100%;
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  transition: opacity var(--transition-fast);
+}
+
+.brand:hover {
+  opacity: 0.9;
+}
+
+.brand-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  object-fit: contain;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.nav-link {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: color var(--transition-fast);
+  position: relative;
+  padding: 6px 0;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: var(--text-primary);
+}
+
+.nav-link.active::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent-primary);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Language Selector */
+.lang-selector-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.lang-icon {
+  position: absolute;
+  left: 11px;
+  width: 16px;
+  height: 16px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.lang-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 7px 30px 7px 34px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.lang-select:hover,
+.lang-select:focus {
+  border-color: var(--border-strong);
+  background-color: var(--bg-surface-hover);
+  outline: none;
+}
+
+.lang-chevron {
+  position: absolute;
+  right: 10px;
+  width: 14px;
+  height: 14px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+/* GitHub Header Button */
+.btn-github-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+}
+
+.btn-github-nav:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.btn-github-nav svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* Mobile Menu Toggle */
+.mobile-menu-btn {
+  display: none;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+
+.btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 1.25rem;
+  padding: 13px 24px;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all var(--transition-base);
+  white-space: nowrap;
 }
 
-.badge {
+.btn svg,
+.btn img {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: #ffffff;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.35);
+}
+
+.btn-primary:hover {
+  background: var(--accent-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(59, 130, 246, 0.45);
+}
+
+.btn-secondary {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-surface-hover);
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: translateY(-2px);
+}
+
+.btn-sm {
+  padding: 9px 16px;
+  font-size: 0.875rem;
+  border-radius: var(--radius-sm);
+}
+
+/* ==========================================================================
+   Hero Section
+   ========================================================================== */
+
+.hero {
+  position: relative;
+  padding: 84px 0 72px;
+  background: var(--gradient-hero);
+  overflow: hidden;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  align-items: center;
+  gap: 56px;
+}
+
+.hero-badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 6px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 99px;
-  font-size: 0.82rem;
-  color: var(--accent);
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: 22px;
 }
 
-.badge-metric {
+.hero-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  box-shadow: 0 0 8px var(--accent-primary);
+}
+
+.hero-title {
+  font-size: clamp(2.35rem, 4.4vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  margin-bottom: 20px;
+}
+
+.text-gradient {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-subtitle {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin-bottom: 34px;
+  max-width: 560px;
+}
+
+.hero-cta-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  font-size: 0.85rem;
   color: var(--text-muted);
 }
 
-.badge-metric svg {
-  width: 14px;
-  height: 14px;
-  color: var(--accent);
+.hero-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.badge-dot {
-  width: 6px;
-  height: 6px;
-  background-color: var(--accent);
+.hero-meta-item svg {
+  width: 15px;
+  height: 15px;
+  color: var(--accent-emerald);
+}
+
+/* Hero Visual Showcase */
+.hero-visual {
+  position: relative;
+}
+
+.hero-glow-bg {
+  position: absolute;
+  inset: -16px;
+  background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.22), transparent 70%);
+  filter: blur(28px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.app-window-frame {
+  position: relative;
+  z-index: 1;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  overflow: hidden;
+}
+
+.app-window-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 16px;
+  background: #0d0f17;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.window-dots {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.window-dot {
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
 }
 
-h1 {
-  font-size: 4.75rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  margin-bottom: 1rem;
-  color: #ffffff;
-  line-height: 1;
+.window-dot.red {
+  background: #ef4444;
 }
 
-p.subtitle {
-  font-size: 1.18rem;
-  color: var(--text-muted);
-  font-weight: 400;
-  line-height: 1.6;
-  margin-bottom: 2rem;
+.window-dot.yellow {
+  background: #f59e0b;
 }
 
-/* Primary Action Buttons */
-.hero-actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-
-.cta-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 15px 30px;
-  border-radius: 14px;
-  background: var(--accent);
-  color: #030712;
-  font-size: 1.05rem;
-  font-weight: 700;
-  text-decoration: none;
-  box-shadow: 0 8px 28px rgba(56, 189, 248, 0.28);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.cta-primary:hover {
-  background: #7dd3fc;
-  transform: translateY(-2px);
-  box-shadow: 0 12px 34px rgba(56, 189, 248, 0.4);
-}
-
-.cta-primary svg {
-  width: 18px;
-  height: 18px;
-}
-
-.cta-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 15px 22px;
-  border-radius: 14px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  color: var(--text-main);
-  font-size: 1rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.cta-secondary:hover {
-  background: var(--card-hover-bg);
-  border-color: var(--card-hover-border);
-  transform: translateY(-2px);
-}
-
-.cta-secondary svg {
-  width: 18px;
-  height: 18px;
-  fill: currentColor;
-}
-
-.star-pill {
-  padding: 2px 8px;
-  border-radius: 99px;
-  background: rgba(56, 189, 248, 0.14);
-  color: var(--accent);
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-/* Screenshot Showcase */
-.showcase-wrapper {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-}
-
-.showcase-frame {
-  width: 100%;
-  background: rgba(15, 23, 42, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(12px);
-}
-
-.window-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 11px 16px;
-  background: rgba(2, 6, 23, 0.65);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+.window-dot.green {
+  background: #10b981;
 }
 
 .window-title {
-  font-size: 0.82rem;
-  color: #94a3b8;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
-.screenshot-container {
-  position: relative;
-  width: 100%;
-  min-height: 360px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #070b14;
-}
-
-.screenshot-container img {
+.app-screenshot {
   width: 100%;
   height: auto;
   display: block;
 }
 
-.screenshot-placeholder {
-  padding: 60px 24px;
-  color: #64748b;
-  font-size: 0.95rem;
+/* ==========================================================================
+   Section Layout & Headers
+   ========================================================================== */
+
+.section {
+  padding: 88px 0;
 }
 
-.screenshot-placeholder code {
-  color: var(--accent);
-  background: rgba(56, 189, 248, 0.1);
-  padding: 3px 8px;
-  border-radius: 6px;
-}
-
-.screenshot-thumbs {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.thumb-btn {
-  padding: 6px 14px;
-  border-radius: 99px;
-  border: 1px solid var(--card-border);
-  background: var(--card-bg);
-  color: var(--text-muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.thumb-btn:hover {
-  color: #ffffff;
-  border-color: var(--card-hover-border);
-}
-
-.thumb-btn.active {
-  background: rgba(56, 189, 248, 0.15);
-  border-color: rgba(56, 189, 248, 0.4);
-  color: var(--accent);
-}
-
-/* =========================================================
-   SECTION 2: DOWNLOADS (ACCORDION - MATCHED TO SHOWCASE WIDTH)
-   ========================================================= */
-.downloads-section {
-  width: 100%;
-  max-width: var(--content-width);
-  padding-top: 48px;
-  padding-bottom: 32px;
-  z-index: 1;
+.section-alt {
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .section-header {
-  text-align: left;
-  margin-bottom: 1.5rem;
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto 56px;
 }
 
-.section-header h2 {
-  font-size: 2.1rem;
+.section-eyebrow {
+  display: inline-block;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-primary);
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: clamp(1.85rem, 3.2vw, 2.5rem);
   font-weight: 800;
-  letter-spacing: -0.03em;
-  color: #ffffff;
-  margin-bottom: 0.35rem;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin-bottom: 16px;
 }
 
-.section-header p {
-  font-size: 0.95rem;
-  color: var(--text-muted);
-}
-
-.accordion-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.accordion-item {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 16px;
-  backdrop-filter: blur(12px);
-  overflow: hidden;
-  transition: border-color 0.2s ease, background 0.2s ease;
-}
-
-.accordion-item:hover {
-  border-color: var(--card-hover-border);
-}
-
-.accordion-item.open {
-  background: rgba(15, 23, 42, 0.9);
-  border-color: rgba(56, 189, 248, 0.3);
-}
-
-.accordion-header {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 22px 26px;
-  background: transparent;
-  border: none;
-  color: #ffffff;
-  cursor: pointer;
-  text-align: left;
-}
-
-.os-info {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-}
-
-.os-icon {
-  width: 34px;
-  height: 34px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-.os-text {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.os-title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.os-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #ffffff;
-}
-
-.recommended-tag {
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: var(--accent);
-  color: #030712;
-}
-
-.os-desc {
-  font-size: 0.88rem;
-  color: var(--text-muted);
-}
-
-.chevron {
-  width: 22px;
-  height: 22px;
-  color: var(--text-muted);
-  transition: transform 0.25s ease;
-  flex-shrink: 0;
-}
-
-.accordion-item.open .chevron {
-  transform: rotate(180deg);
-  color: var(--accent);
-}
-
-/* Expandable Drawer Content */
-.accordion-body {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.25s ease;
-}
-
-.accordion-item.open .accordion-body {
-  grid-template-rows: 1fr;
-}
-
-.accordion-content {
-  overflow: hidden;
-  padding: 0 26px;
-}
-
-.accordion-item.open .accordion-content {
-  padding-bottom: 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding-top: 20px;
-}
-
-.real-download-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 13px 22px;
-  border-radius: 12px;
-  background: var(--accent);
-  color: #030712;
-  font-size: 0.98rem;
-  font-weight: 700;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.real-download-btn:hover {
-  background: #7dd3fc;
-  transform: translateY(-1px);
-}
-
-.real-download-btn svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-/* Installation Guides inside Tutorial Slot */
-.tutorial-slot {
-  margin-top: 20px;
-}
-
-.install-guide {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding-top: 18px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.guide-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 18px;
-}
-
-.guide-block {
-  min-width: 0;
-}
-
-.guide-block h4 {
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: #e2e8f0;
-  margin-bottom: 8px;
-}
-
-.guide-block ol {
-  padding-left: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  color: var(--text-muted);
-  font-size: 0.88rem;
-  line-height: 1.55;
-}
-
-.guide-block code {
-  color: var(--accent);
-  background: rgba(56, 189, 248, 0.1);
-  padding: 2px 6px;
-  border-radius: 5px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.83rem;
-}
-
-.smartscreen-notice {
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  border-radius: 12px;
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.smartscreen-notice strong {
-  color: #fbbf24;
-  font-size: 0.9rem;
-}
-
-.smartscreen-notice p {
-  color: #cbd5e1;
-  font-size: 0.86rem;
-  line-height: 1.55;
-}
-
-.code-box {
-  position: relative;
-  width: fit-content;
-  max-width: 100%;
-  margin: 0 auto;
-  background: #020617;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 14px 48px 10px 16px;
-}
-
-.code-box pre {
-  margin: 0;
-  padding-bottom: 14px;
-  overflow-x: auto;
-  white-space: pre;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.18) rgba(0, 0, 0, 0.35);
-}
-
-.code-box pre::-webkit-scrollbar {
-  height: 7px;
-}
-
-.code-box pre::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.35);
-  border-radius: 99px;
-}
-
-.code-box pre::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
-  border-radius: 99px;
-}
-
-.code-box pre::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.32);
-}
-
-.code-box code {
-  background: transparent;
-  padding: 0;
-  color: #e2e8f0;
-  font-size: 0.78rem;
+.section-description {
+  font-size: 1.0625rem;
+  color: var(--text-secondary);
   line-height: 1.65;
 }
 
-.copy-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
+/* ==========================================================================
+   Feature Cards Grid
+   ========================================================================== */
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.feature-card {
+  background: var(--bg-surface);
+  background-image: var(--gradient-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 30px 28px;
+  transition: transform var(--transition-base), border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-accent);
+  box-shadow: var(--shadow-md);
+}
+
+.feature-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(15, 23, 42, 0.9);
-  color: var(--text-muted);
+  margin-bottom: 20px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.feature-icon-box.cyan {
+  background: rgba(6, 182, 212, 0.12);
+  color: #22d3ee;
+  border-color: rgba(6, 182, 212, 0.25);
+}
+
+.feature-icon-box.emerald {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.feature-icon-box.purple {
+  background: rgba(139, 92, 246, 0.12);
+  color: #a78bfa;
+  border-color: rgba(139, 92, 246, 0.25);
+}
+
+.feature-icon-box.amber {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.feature-icon-box svg {
+  width: 24px;
+  height: 24px;
+}
+
+.feature-card h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+.feature-card p {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   Media Modules Showcase (Images, Videos, Audio)
+   ========================================================================== */
+
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.module-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.module-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.module-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.module-card h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.module-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.module-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.925rem;
+  color: var(--text-secondary);
+}
+
+.module-list li svg {
+  width: 18px;
+  height: 18px;
+  color: var(--accent-primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.format-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.format-pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.74rem;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+/* ==========================================================================
+   Gallery / Preview Tabs
+   ========================================================================== */
+
+.preview-tabs {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+.preview-tab {
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
-.copy-btn:hover {
+.preview-tab:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.preview-tab.active {
+  background: var(--accent-primary);
   color: #ffffff;
-  border-color: var(--accent);
-  background: rgba(30, 41, 59, 0.95);
+  border-color: var(--accent-primary);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35);
 }
 
-.copy-btn.copied {
-  color: #4ade80;
-  border-color: rgba(74, 222, 128, 0.45);
+.preview-stage {
+  max-width: 960px;
+  margin: 0 auto;
 }
 
-.copy-btn svg {
-  width: 16px;
-  height: 16px;
-  pointer-events: none;
+.preview-panel {
+  display: none;
+  animation: fadeIn 260ms ease;
 }
 
-/* =========================================================
-   SECTION 3: COMMUNITY & FEEDBACK
-   ========================================================= */
-.community-section {
-  width: 100%;
-  max-width: var(--content-width);
-  padding-top: 36px;
-  padding-bottom: 24px;
-  z-index: 1;
+.preview-panel.active {
+  display: block;
 }
 
-.community-header {
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   CTA Banner
+   ========================================================================== */
+
+.cta-banner {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(6, 182, 212, 0.1) 100%);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-xl);
+  padding: 56px 40px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-banner h2 {
+  font-size: clamp(1.75rem, 3vw, 2.35rem);
+  font-weight: 800;
+  margin-bottom: 14px;
+  letter-spacing: -0.02em;
+}
+
+.cta-banner p {
+  font-size: 1.0625rem;
+  color: var(--text-secondary);
+  max-width: 580px;
+  margin: 0 auto 30px;
+}
+
+.cta-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+/* ==========================================================================
+   Downloads Page
+   ========================================================================== */
+
+.downloads-hero {
+  padding: 64px 0 44px;
+  background: var(--gradient-hero);
+  text-align: center;
+}
+
+.version-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+.downloads-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.download-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: border-color var(--transition-base), transform var(--transition-base);
+}
+
+.download-card:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-2px);
+}
+
+.download-card-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  flex-wrap: wrap;
+  margin-bottom: 20px;
 }
 
-.star-cta-btn {
-  display: inline-flex;
+.os-identity {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 12px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  color: #f8fafc;
-  font-size: 0.9rem;
+  gap: 14px;
+}
+
+.os-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+.os-icon-wrap img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.os-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.os-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.package-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
   font-weight: 600;
-  text-decoration: none;
-  transition: all 0.2s ease;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.14);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.25);
 }
 
-.star-cta-btn:hover {
-  background: var(--card-hover-bg);
-  border-color: rgba(250, 204, 21, 0.45);
-  transform: translateY(-1px);
+.download-desc {
+  font-size: 0.94rem;
+  color: var(--text-secondary);
+  margin-bottom: 22px;
+  line-height: 1.6;
 }
 
-.star-cta-btn svg {
-  width: 16px;
-  height: 16px;
-  color: #facc15;
+.download-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.giscus-wrapper {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 16px;
-  padding: 20px;
-  backdrop-filter: blur(12px);
+/* Terminal Command Box */
+.cli-box {
+  background: var(--bg-code);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-/* =========================================================
-   FOOTER
-   ========================================================= */
-footer {
-  z-index: 1;
-  margin-top: 2.5rem;
-  font-size: 0.9rem;
-  color: #64748b;
+.cli-code {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 2px;
 }
 
-footer a {
-  color: #94a3b8;
-  text-decoration: none;
+.cli-code::-webkit-scrollbar {
+  height: 4px;
+}
+
+.cli-code::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+}
+
+.btn-copy {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: color 0.2s ease;
-  font-weight: 500;
+  padding: 6px 11px;
+  border-radius: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
 }
 
-footer a:hover {
-  color: #f8fafc;
+.btn-copy:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  background: var(--bg-surface-hover);
 }
 
-footer svg {
-  width: 16px;
-  height: 16px;
-  fill: currentColor;
+.btn-copy.copied {
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.12);
 }
 
-@media (max-width: 600px) {
-  .hero-section {
-    padding-top: 40px;
+.btn-copy svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Installation Accordion & Security Notices */
+.install-notes {
+  margin-top: 56px;
+  max-width: 880px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.accordion-item {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.accordion-trigger {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: background-color var(--transition-fast);
+}
+
+.accordion-trigger:hover {
+  background: var(--bg-surface-hover);
+}
+
+.accordion-trigger svg {
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+  transition: transform var(--transition-base);
+  flex-shrink: 0;
+}
+
+.accordion-item.open .accordion-trigger svg {
+  transform: rotate(180deg);
+}
+
+.accordion-content {
+  display: none;
+  padding: 0 24px 22px;
+  font-size: 0.94rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 16px;
+}
+
+.accordion-item.open .accordion-content {
+  display: block;
+}
+
+.accordion-content ol,
+.accordion-content ul {
+  padding-left: 20px;
+  margin-top: 8px;
+}
+
+.accordion-content li {
+  margin-bottom: 6px;
+}
+
+.all-releases-bar {
+  margin-top: 40px;
+  text-align: center;
+}
+
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+
+.footer {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-subtle);
+  padding: 44px 0;
+  margin-top: auto;
+}
+
+.footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.footer-brand img {
+  width: 24px;
+  height: 24px;
+}
+
+.footer-copy {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.footer-copy a {
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.footer-copy a:hover {
+  color: var(--text-primary);
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.footer-links a:hover {
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 44px;
+    text-align: center;
   }
 
-  h1 {
-    font-size: 3.4rem;
+  .hero-subtitle {
+    margin-left: auto;
+    margin-right: auto;
   }
 
-  .screenshot-container {
-    min-height: 220px;
+  .hero-cta-group,
+  .hero-meta {
+    justify-content: center;
   }
 
-  .accordion-header {
-    padding: 18px;
+  .features-grid,
+  .modules-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: var(--header-height);
+    left: 0;
+    right: 0;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-subtle);
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px 24px 24px;
+    gap: 12px;
   }
 
-  .accordion-content {
-    padding: 0 18px;
+  .nav-links.open {
+    display: flex;
+  }
+
+  .mobile-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-github-nav span {
+    display: none;
+  }
+
+  .features-grid,
+  .modules-grid,
+  .downloads-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section {
+    padding: 64px 0;
+  }
+
+  .cta-banner {
+    padding: 40px 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0 16px;
+  }
+
+  .hero {
+    padding: 56px 0 48px;
+  }
+
+  .hero-cta-group .btn {
+    width: 100%;
+  }
+
+  .lang-select {
+    max-width: 124px;
   }
 }
 </file>
 
 <file path="js/main.js">
 // =========================================================
-// 1. POPULATE VERSION, ICONS, LINKS & DYNAMIC COMMANDS
+// 0. FILE:// PROTOCOL FALLBACK FOR NAVIGATION LINKS
 // =========================================================
-const versionBadge = document.getElementById('version-badge');
-if (versionBadge) {
-    versionBadge.textContent = `v${CONFIG.version} • Open Source`;
+if (window.location.protocol === 'file:') {
+    const navDownloads = document.getElementById('nav-downloads');
+    if (navDownloads) navDownloads.href = 'downloads/index.html';
+
+    const navHome = document.getElementById('nav-home');
+    if (navHome) navHome.href = '../index.html';
 }
 
+// =========================================================
+// 1. STATIC ASSETS, LINKS & DYNAMIC TRANSLATED CONTENT
+// =========================================================
 const schemaEl = document.getElementById('schema-software');
 if (schemaEl) {
     const schema = JSON.parse(schemaEl.textContent);
@@ -1708,17 +3140,6 @@ Object.entries(CONFIG.icons).forEach(([key, path]) => {
     });
 });
 
-const labelMap = {
-    'label-windows': CONFIG.labels.windows,
-    'label-deb': CONFIG.labels.deb,
-    'label-rpm': CONFIG.labels.rpm,
-    'label-appimage': CONFIG.labels.appImage
-};
-Object.entries(labelMap).forEach(([id, text]) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
-});
-
 const urlMap = {
     'btn-windows': CONFIG.urls.windows,
     'btn-deb': CONFIG.urls.deb,
@@ -1730,27 +3151,48 @@ Object.entries(urlMap).forEach(([id, href]) => {
     if (el) el.href = href;
 });
 
-// Keep filenames and terminal install commands synced with CONFIG.version
-document.querySelectorAll('[data-filename]').forEach(el => {
-    const key = el.getAttribute('data-filename');
-    if (CONFIG.files[key]) {
-        el.textContent = CONFIG.files[key];
+function renderTranslatedDynamicParts() {
+    const versionBadge = document.getElementById('version-badge');
+    if (versionBadge) {
+        versionBadge.textContent = I18N.t('common.version_badge', { version: CONFIG.version });
     }
-});
 
-const cmdDeb = document.getElementById('cmd-deb');
-if (cmdDeb) {
-    cmdDeb.textContent = `sudo apt update && sudo apt install -y curl\ncurl -fL ${CONFIG.urls.deb} -o /tmp/${CONFIG.files.deb}\nsudo apt install -y /tmp/${CONFIG.files.deb} && rm -f /tmp/${CONFIG.files.deb}`;
-}
+    const labelMap = {
+        'label-windows': I18N.t('downloads.labels.windows', { version: CONFIG.version }),
+        'label-deb': I18N.t('downloads.labels.deb', { version: CONFIG.version }),
+        'label-rpm': I18N.t('downloads.labels.rpm', { version: CONFIG.version }),
+        'label-appimage': I18N.t('downloads.labels.appimage', { version: CONFIG.version })
+    };
+    Object.entries(labelMap).forEach(([id, text]) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    });
 
-const cmdRpm = document.getElementById('cmd-rpm');
-if (cmdRpm) {
-    cmdRpm.textContent = `sudo dnf check-update; sudo dnf install -y curl\ncurl -fL ${CONFIG.urls.rpm} -o /tmp/${CONFIG.files.rpm}\nsudo dnf install -y /tmp/${CONFIG.files.rpm} && rm -f /tmp/${CONFIG.files.rpm}`;
-}
+    document.querySelectorAll('[data-filename]').forEach(el => {
+        const key = el.getAttribute('data-filename');
+        if (CONFIG.files[key]) {
+            el.textContent = CONFIG.files[key];
+        }
+    });
 
-const cmdAppImage = document.getElementById('cmd-appimage');
-if (cmdAppImage) {
-    cmdAppImage.textContent = `# Make sure curl is installed (e.g., sudo pacman -Syu --needed curl)\ncurl -fLO ${CONFIG.urls.appImage}\nchmod +x ${CONFIG.files.appImage}\n./${CONFIG.files.appImage}`;
+    const cmdDeb = document.getElementById('cmd-deb');
+    if (cmdDeb) {
+        cmdDeb.textContent = `sudo apt update && sudo apt install -y curl\ncurl -fL ${CONFIG.urls.deb} -o /tmp/${CONFIG.files.deb}\nsudo apt install -y /tmp/${CONFIG.files.deb} && rm -f /tmp/${CONFIG.files.deb}`;
+    }
+
+    const cmdRpm = document.getElementById('cmd-rpm');
+    if (cmdRpm) {
+        cmdRpm.textContent = `sudo dnf check-update; sudo dnf install -y curl\ncurl -fL ${CONFIG.urls.rpm} -o /tmp/${CONFIG.files.rpm}\nsudo dnf install -y /tmp/${CONFIG.files.rpm} && rm -f /tmp/${CONFIG.files.rpm}`;
+    }
+
+    const cmdAppImage = document.getElementById('cmd-appimage');
+    if (cmdAppImage) {
+        const comment = I18N.t('downloads.guides.appimage_curl_comment');
+        cmdAppImage.textContent = `${comment}\ncurl -fLO ${CONFIG.urls.appImage}\nchmod +x ${CONFIG.files.appImage}\n./${CONFIG.files.appImage}`;
+    }
+
+    updateDownloadsBadgeText();
+    renderScreenshotThumbs();
 }
 
 // Copy buttons for terminal commands
@@ -1767,14 +3209,14 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
             await navigator.clipboard.writeText(codeEl.textContent);
             btn.innerHTML = CHECK_ICON;
             btn.classList.add('copied');
-            btn.title = 'Copied!';
+            btn.title = I18N.t('common.copied');
             setTimeout(() => {
                 btn.innerHTML = COPY_ICON;
                 btn.classList.remove('copied');
-                btn.title = 'Copy command';
+                btn.title = I18N.t('common.copy_command');
             }, 1600);
         } catch {
-            btn.title = 'Failed to copy';
+            btn.title = I18N.t('common.copy_failed');
         }
     });
 });
@@ -1782,6 +3224,25 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
 // =========================================================
 // 2. GITHUB LIVE METRICS (VERSION DOWNLOADS & REPO STARS)
 // =========================================================
+let cachedTotalDownloads = null;
+
+function updateDownloadsBadgeText() {
+    const badge = document.getElementById('downloads-badge');
+    const label = document.getElementById('version-downloads-count');
+    if (!badge || !label || cachedTotalDownloads === null) return;
+
+    const formatted = cachedTotalDownloads.toLocaleString(I18N.getLang());
+    const key = cachedTotalDownloads === 1
+        ? 'hero.downloads_count_singular'
+        : 'hero.downloads_count_plural';
+
+    label.textContent = I18N.t(key, {
+        count: formatted,
+        version: CONFIG.version
+    });
+    badge.hidden = false;
+}
+
 async function loadGitHubStats() {
     const badge = document.getElementById('downloads-badge');
     const pill = document.getElementById('github-stars');
@@ -1794,17 +3255,11 @@ async function loadGitHubStats() {
             const releaseRes = await fetch(`${apiBase}/releases/tags/v${CONFIG.version}`);
             if (releaseRes.ok) {
                 const releaseData = await releaseRes.json();
-                const totalDownloads = (releaseData.assets || []).reduce(
+                cachedTotalDownloads = (releaseData.assets || []).reduce(
                     (sum, asset) => sum + (asset.download_count || 0),
                     0
                 );
-
-                const label = document.getElementById('version-downloads-count');
-                if (label) {
-                    const formatted = totalDownloads.toLocaleString('en-US');
-                    label.textContent = `${formatted} ${totalDownloads === 1 ? 'download' : 'downloads'} (v${CONFIG.version})`;
-                    badge.hidden = false;
-                }
+                updateDownloadsBadgeText();
             }
         } catch {
             // Silently keep badge hidden if rate-limited or offline
@@ -1818,7 +3273,7 @@ async function loadGitHubStats() {
                 const repoData = await repoRes.json();
                 const stars = repoData.stargazers_count;
                 if (typeof stars === 'number') {
-                    pill.textContent = `★ ${stars.toLocaleString('en-US')}`;
+                    pill.textContent = `★ ${stars.toLocaleString(I18N.getLang())}`;
                     pill.hidden = false;
                 }
             }
@@ -1828,44 +3283,42 @@ async function loadGitHubStats() {
     }
 }
 
-loadGitHubStats();
-
 // =========================================================
 // 3. APP SCREENSHOT SHOWCASE
 // =========================================================
 const screenshotImg = document.getElementById('app-screenshot');
 const screenshotPlaceholder = document.getElementById('screenshot-placeholder');
 const thumbsContainer = document.getElementById('screenshot-thumbs');
+let activeScreenshotIndex = 0;
 
 function setScreenshot(index) {
     const item = CONFIG.screenshots[index];
     if (!item || !screenshotImg) return;
 
+    activeScreenshotIndex = index;
     screenshotImg.style.display = 'block';
     if (screenshotPlaceholder) screenshotPlaceholder.style.display = 'none';
     screenshotImg.src = item.src;
-    screenshotImg.alt = item.label;
+    screenshotImg.alt = item.labelKey ? I18N.t(item.labelKey) : (item.label || '');
 
     document.querySelectorAll('.thumb-btn').forEach((btn, idx) => {
         btn.classList.toggle('active', idx === index);
     });
 }
 
-if (screenshotImg) {
-    screenshotImg.addEventListener('error', () => {
-        screenshotImg.style.display = 'none';
-        if (screenshotPlaceholder) screenshotPlaceholder.style.display = 'block';
-    });
+function renderScreenshotThumbs() {
+    if (!screenshotImg || CONFIG.screenshots.length === 0) return;
 
-    if (CONFIG.screenshots.length > 0) {
-        setScreenshot(0);
+    setScreenshot(activeScreenshotIndex);
 
-        if (CONFIG.screenshots.length > 1 && thumbsContainer) {
+    if (thumbsContainer) {
+        thumbsContainer.innerHTML = '';
+        if (CONFIG.screenshots.length > 1) {
             CONFIG.screenshots.forEach((shot, index) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = `thumb-btn ${index === 0 ? 'active' : ''}`;
-                btn.textContent = shot.label;
+                btn.className = `thumb-btn ${index === activeScreenshotIndex ? 'active' : ''}`;
+                btn.textContent = shot.labelKey ? I18N.t(shot.labelKey) : shot.label;
                 btn.addEventListener('click', () => setScreenshot(index));
                 thumbsContainer.appendChild(btn);
             });
@@ -1873,8 +3326,15 @@ if (screenshotImg) {
     }
 }
 
+if (screenshotImg) {
+    screenshotImg.addEventListener('error', () => {
+        screenshotImg.style.display = 'none';
+        if (screenshotPlaceholder) screenshotPlaceholder.style.display = 'block';
+    });
+}
+
 // =========================================================
-// 4. DOWNLOADS ACCORDION + OS DETECTION
+// 4. DOWNLOADS ACCORDION
 // =========================================================
 const accordionItems = document.querySelectorAll('.accordion-item');
 
@@ -1896,76 +3356,79 @@ accordionItems.forEach(item => {
     });
 });
 
-function detectUserOS() {
-    const ua = navigator.userAgent.toLowerCase();
-    if (ua.includes('win')) return 'windows';
-    if (ua.includes('fedora') || ua.includes('red hat') || ua.includes('centos')) return 'fedora';
-    if (ua.includes('linux') || ua.includes('ubuntu') || ua.includes('debian')) return 'debian';
-    return null;
-}
+// =========================================================
+// 5. BOOTSTRAP I18N & DATA
+// =========================================================
+document.addEventListener('i18n:ready', () => {
+    renderTranslatedDynamicParts();
+});
 
-const detectedOS = detectUserOS();
-if (detectedOS && accordionItems.length > 0) {
-    const targetItem = document.querySelector(`.accordion-item[data-os="${detectedOS}"]`);
-    if (targetItem) {
-        const tag = targetItem.querySelector('.recommended-tag');
-        if (tag) tag.hidden = false;
-
-        // Auto-expand the detected OS drawer on the dedicated /downloads/ page
-        targetItem.classList.add('open');
-        targetItem.querySelector('.accordion-header').setAttribute('aria-expanded', 'true');
-    }
-}
+I18N.init().then(() => {
+    loadGitHubStats();
+});
 </file>
 
 <file path="js/config.js">
-const VERSION = "2.1.0";
-const REPO_OWNER = "brunothinker";
-const REPO_NAME = "FallByte";
-const REPO_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}`;
-
-const FILES = {
-    windows: `fallbyte_${VERSION}_x64_installer.exe`,
-    deb: `fallbyte_${VERSION}_amd64.deb`,
-    rpm: `fallbyte_${VERSION}_x86_64.rpm`,
-    appImage: `fallbyte_${VERSION}_x86_64.AppImage`
-};
+/**
+ * Central application configuration.
+ * Update VERSION to automatically propagate version numbers across all download links and commands.
+ */
+const VERSION = "2.2.0";
 
 const CONFIG = {
     version: VERSION,
-    repoOwner: REPO_OWNER,
-    repoName: REPO_NAME,
-    repoUrl: REPO_URL,
-    files: FILES,
+    github: {
+        user: "brunothinker",
+        repo: "FallByte",
+        url: "https://github.com/brunothinker/FallByte",
+        releasesUrl: "https://github.com/brunothinker/FallByte/releases",
+        latestReleaseBase: `https://github.com/brunothinker/FallByte/releases/download/v${VERSION}`
+    },
+    site: {
+        baseUrl: "https://fallbyte.brunothinker.workers.dev"
+    },
+    downloads: {
+        windows: {
+            filename: `FallByte_${VERSION}_Windows_x64.exe`,
+            url: `https://github.com/brunothinker/FallByte/releases/download/v${VERSION}/FallByte_${VERSION}_Windows_x64.exe`
+        },
+        ubuntu: {
+            filename: `fallbyte_${VERSION}_amd64.deb`,
+            url: `https://github.com/brunothinker/FallByte/releases/download/v${VERSION}/fallbyte_${VERSION}_amd64.deb`,
+            command: `curl -LO https://github.com/brunothinker/FallByte/releases/download/v${VERSION}/fallbyte_${VERSION}_amd64.deb && sudo apt install ./fallbyte_${VERSION}_amd64.deb`
+        },
+        fedora: {
+            filename: `fallbyte-${VERSION}-1.x86_64.rpm`,
+            url: `https://github.com/brunothinker/FallByte/releases/download/v${VERSION}/fallbyte-${VERSION}-1.x86_64.rpm`,
+            command: `curl -LO https://github.com/brunothinker/FallByte/releases/download/v${VERSION}/fallbyte-${VERSION}-1.x86_64.rpm && sudo dnf install ./fallbyte-${VERSION}-1.x86_64.rpm`
+        },
+        appimage: {
+            filename: `FallByte-${VERSION}-x86_64.AppImage`,
+            url: `https://github.com/brunothinker/FallByte/releases/download/v${VERSION}/FallByte-${VERSION}-x86_64.AppImage`,
+            command: `curl -LO https://github.com/brunothinker/FallByte/releases/download/v${VERSION}/FallByte-${VERSION}-x86_64.AppImage && chmod +x FallByte-${VERSION}-x86_64.AppImage && ./FallByte-${VERSION}-x86_64.AppImage`
+        }
+    },
+    i18n: {
+        defaultLang: "en",
+        supportedLangs: ["de", "en", "es", "fr", "it", "ja", "ko", "pt", "ru", "zh"],
+        languageNames: {
+            de: "Deutsch",
+            en: "English",
+            es: "Español",
+            fr: "Français",
+            it: "Italiano",
+            ja: "日本語",
+            ko: "한국어",
+            pt: "Português",
+            ru: "Русский",
+            zh: "中文"
+        }
+    },
     icons: {
-        windows: "/icons/windows.svg",
-        linux: "/icons/tux.svg",
-        ubuntu: "/icons/ubuntu.svg",
-        fedora: "/icons/fedora.svg",
-        arch: "/icons/arch.svg"
-    },
-    // Add as many screenshots as you want; if more than 1, tabs will appear below
-    screenshots: [
-        { label: "Main Interface", src: "/screenshots/preview.png" }
-    ],
-    labels: {
-        windows: `Download Windows Installer (v${VERSION})`,
-        deb: `Download .DEB Package (v${VERSION})`,
-        rpm: `Download .RPM Package (v${VERSION})`,
-        appImage: `Download .AppImage Binary (v${VERSION})`
-    },
-    urls: {
-        windows: `${REPO_URL}/releases/download/v${VERSION}/${FILES.windows}`,
-        deb: `${REPO_URL}/releases/download/v${VERSION}/${FILES.deb}`,
-        rpm: `${REPO_URL}/releases/download/v${VERSION}/${FILES.rpm}`,
-        appImage: `${REPO_URL}/releases/download/v${VERSION}/${FILES.appImage}`
-    },
-    giscus: {
-        enabled: true,
-        repo: `${REPO_OWNER}/${REPO_NAME}`,
-        repoId: "R_kgDOTxp_Uw",
-        category: "General",
-        categoryId: "DIC_kwDOTxp_U84DLuPu"
+        windows: "assets/icons/windows.svg",
+        ubuntu: "assets/icons/ubuntu.svg",
+        fedora: "assets/icons/fedora.svg",
+        arch: "assets/icons/arch.svg"
     }
 };
 </file>
@@ -1978,27 +3441,27 @@ const CONFIG = {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="google-site-verification" content="MzTMU45p1NK0LX6vi6YX3gcwnoAu3yfcHVMovFke7rE" />
-  <title>FallByte</title>
-  <link rel="icon" type="image/png" href="/icons/fallbyte_logo.png" />
-  <link rel="apple-touch-icon" href="/icons/fallbyte_logo.png" />
+  <title>FallByte — Transform your media. Keep your privacy.</title>
+  <link rel="icon" type="image/png" href="icons/fallbyte_logo.png" />
+  <link rel="apple-touch-icon" href="icons/fallbyte_logo.png" />
   <link rel="canonical" href="https://fallbyte.brunothinker.workers.dev/" />
   <meta name="description"
-    content="Compress, convert, resize, downscale, extract, and normalize videos, images, and audio locally on Windows and Linux with complete privacy." />
+    content="Transform your media. Keep your privacy. A fast, lightweight, and offline media toolkit for images, videos, and audio." />
 
   <!-- Open Graph / Social Preview -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="FallByte" />
-  <meta property="og:title" content="FallByte — Fast, Local-First Media Toolkit" />
+  <meta property="og:title" content="FallByte — Transform your media. Keep your privacy." />
   <meta property="og:description"
-    content="Compress, convert, resize, downscale, extract, and normalize videos, images, and audio offline on Windows and Linux." />
+    content="A fast, lightweight, and offline media toolkit for images, videos, and audio." />
   <meta property="og:url" content="https://fallbyte.brunothinker.workers.dev/" />
   <meta property="og:image" content="https://fallbyte.brunothinker.workers.dev/screenshots/preview.png" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="FallByte — Fast, Local-First Media Toolkit" />
+  <meta name="twitter:title" content="FallByte — Transform your media. Keep your privacy." />
   <meta name="twitter:description"
-    content="Compress, convert, resize, downscale, extract, and normalize videos, images, and audio offline on Windows and Linux." />
+    content="A fast, lightweight, and offline media toolkit for images, videos, and audio." />
   <meta name="twitter:image" content="https://fallbyte.brunothinker.workers.dev/screenshots/preview.png" />
 
   <!-- Structured Data (WebSite + SoftwareApplication) -->
@@ -2016,10 +3479,10 @@ const CONFIG = {
         "name": "FallByte",
         "operatingSystem": "Windows, Linux",
         "applicationCategory": "MultimediaApplication",
-        "description": "A fast, local-first media toolkit to compress, convert, resize, downscale, extract, and normalize videos, images, and audio.",
+        "description": "Transform your media. Keep your privacy. A fast, lightweight, and offline media toolkit for images, videos, and audio.",
         "url": "https://fallbyte.brunothinker.workers.dev/",
         "downloadUrl": "https://fallbyte.brunothinker.workers.dev/downloads/",
-        "softwareVersion": "2.1.0",
+        "softwareVersion": "2.2.0",
         "license": "https://www.gnu.org/licenses/gpl-3.0.html",
         "sameAs": [
           "https://github.com/brunothinker/FallByte"
@@ -2034,11 +3497,32 @@ const CONFIG = {
   }
   </script>
 
-  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 
-<body>
+<body data-page="home">
   <div class="ambient-glow" aria-hidden="true"></div>
+
+  <!-- TOP BAR WITH LANGUAGE SELECTOR -->
+  <div class="top-bar">
+    <div class="lang-switcher" id="lang-switcher">
+      <button type="button" class="lang-toggle" id="lang-toggle" aria-haspopup="listbox" aria-expanded="false"
+        aria-label="Language">
+        <svg class="globe-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        <span id="lang-current-code">EN</span>
+        <svg class="chevron-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      <div class="lang-menu" id="lang-menu" role="listbox"></div>
+    </div>
+  </div>
 
   <!-- HERO SECTION: OVERVIEW + DOWNLOAD CTA + APP SHOWCASE -->
   <header class="hero-section">
@@ -2046,30 +3530,26 @@ const CONFIG = {
       <div class="hero-pills">
         <div class="badge">
           <span class="badge-dot"></span>
-          <span id="version-badge">v2.1.0 &bull; Open Source</span>
+          <span id="version-badge" data-i18n="common.version_badge"></span>
         </div>
 
-        <div class="badge badge-metric" id="downloads-badge" hidden
-          title="Total GitHub release downloads for this version">
+        <div class="badge badge-metric" id="downloads-badge" hidden data-i18n-title="hero.downloads_badge_title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
             stroke-linejoin="round" aria-hidden="true">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          <span id="version-downloads-count">0 downloads</span>
+          <span id="version-downloads-count"></span>
         </div>
       </div>
 
       <h1>FallByte</h1>
-      <p class="subtitle">
-        A fast, local-first media toolkit to compress, convert, resize, downscale, extract, and normalize videos,
-        images, and audio. No cloud uploads, no limits, and complete privacy.
-      </p>
+      <p class="subtitle" data-i18n="hero.subtitle"></p>
 
       <nav class="hero-actions" aria-label="Primary actions">
-        <a href="/downloads/" class="cta-primary">
-          <span>Download Now</span>
+        <a href="downloads/" class="cta-primary" id="nav-downloads">
+          <span data-i18n="hero.cta_download"></span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
             stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -2084,7 +3564,7 @@ const CONFIG = {
             <path
               d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
           </svg>
-          <span>GitHub</span>
+          <span data-i18n="hero.cta_github"></span>
           <span class="star-pill" id="github-stars" hidden></span>
         </a>
       </nav>
@@ -2092,16 +3572,10 @@ const CONFIG = {
 
     <!-- App Screenshot Showcase -->
     <div class="showcase-wrapper">
-      <div class="showcase-frame">
-        <div class="window-bar window-bar-minimal">
-          <span class="window-title">FallByte</span>
-        </div>
-
-        <div class="screenshot-container" id="screenshot-container">
-          <img id="app-screenshot" src="" alt="FallByte Interface" />
-          <div class="screenshot-placeholder" id="screenshot-placeholder">
-            <span>Add your screenshot to <code>screenshots/preview.png</code></span>
-          </div>
+      <div class="screenshot-container" id="screenshot-container">
+        <img id="app-screenshot" src="" data-i18n-alt="hero.screenshot_alt" alt="FallByte Interface" />
+        <div class="screenshot-placeholder" id="screenshot-placeholder">
+          <span data-i18n-html="hero.screenshot_placeholder"></span>
         </div>
       </div>
 
@@ -2111,17 +3585,13 @@ const CONFIG = {
   </header>
 
   <footer>
-    <a href="https://github.com/brunothinker/FallByte" target="_blank" rel="noopener noreferrer">
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path
-          d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-      </svg>
-      github.com/brunothinker/FallByte
-    </a>
+    <span><span data-i18n="common.footer_built_by"></span> <a href="https://github.com/brunothinker" target="_blank"
+        rel="noopener noreferrer">Bruno Thinker</a></span>
   </footer>
 
-  <script src="/js/config.js"></script>
-  <script src="/js/main.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/main.js"></script>
 
 </body>
 

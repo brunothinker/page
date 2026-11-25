@@ -5,27 +5,27 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="google-site-verification" content="MzTMU45p1NK0LX6vi6YX3gcwnoAu3yfcHVMovFke7rE" />
-  <title>FallByte</title>
+  <title>FallByte — Transform your media. Keep your privacy.</title>
   <link rel="icon" type="image/png" href="icons/fallbyte_logo.png" />
   <link rel="apple-touch-icon" href="icons/fallbyte_logo.png" />
   <link rel="canonical" href="https://fallbyte.brunothinker.workers.dev/" />
   <meta name="description"
-    content="Compress, convert, resize, downscale, extract, and normalize videos, images, and audio locally on Windows and Linux with complete privacy." />
+    content="Transform your media. Keep your privacy. A fast, lightweight, and offline media toolkit for images, videos, and audio." />
 
   <!-- Open Graph / Social Preview -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="FallByte" />
-  <meta property="og:title" content="FallByte — Fast, Local-First Media Toolkit" />
+  <meta property="og:title" content="FallByte — Transform your media. Keep your privacy." />
   <meta property="og:description"
-    content="Compress, convert, resize, downscale, extract, and normalize videos, images, and audio offline on Windows and Linux." />
+    content="A fast, lightweight, and offline media toolkit for images, videos, and audio." />
   <meta property="og:url" content="https://fallbyte.brunothinker.workers.dev/" />
   <meta property="og:image" content="https://fallbyte.brunothinker.workers.dev/screenshots/preview.png" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="FallByte — Fast, Local-First Media Toolkit" />
+  <meta name="twitter:title" content="FallByte — Transform your media. Keep your privacy." />
   <meta name="twitter:description"
-    content="Compress, convert, resize, downscale, extract, and normalize videos, images, and audio offline on Windows and Linux." />
+    content="A fast, lightweight, and offline media toolkit for images, videos, and audio." />
   <meta name="twitter:image" content="https://fallbyte.brunothinker.workers.dev/screenshots/preview.png" />
 
   <!-- Structured Data (WebSite + SoftwareApplication) -->
@@ -43,10 +43,10 @@
         "name": "FallByte",
         "operatingSystem": "Windows, Linux",
         "applicationCategory": "MultimediaApplication",
-        "description": "A fast, local-first media toolkit to compress, convert, resize, downscale, extract, and normalize videos, images, and audio.",
+        "description": "Transform your media. Keep your privacy. A fast, lightweight, and offline media toolkit for images, videos, and audio.",
         "url": "https://fallbyte.brunothinker.workers.dev/",
         "downloadUrl": "https://fallbyte.brunothinker.workers.dev/downloads/",
-        "softwareVersion": "2.1.0",
+        "softwareVersion": "2.2.0",
         "license": "https://www.gnu.org/licenses/gpl-3.0.html",
         "sameAs": [
           "https://github.com/brunothinker/FallByte"
@@ -64,8 +64,29 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 
-<body>
+<body data-page="home">
   <div class="ambient-glow" aria-hidden="true"></div>
+
+  <!-- TOP BAR WITH LANGUAGE SELECTOR -->
+  <div class="top-bar">
+    <div class="lang-switcher" id="lang-switcher">
+      <button type="button" class="lang-toggle" id="lang-toggle" aria-haspopup="listbox" aria-expanded="false"
+        aria-label="Language">
+        <svg class="globe-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        <span id="lang-current-code">EN</span>
+        <svg class="chevron-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      <div class="lang-menu" id="lang-menu" role="listbox"></div>
+    </div>
+  </div>
 
   <!-- HERO SECTION: OVERVIEW + DOWNLOAD CTA + APP SHOWCASE -->
   <header class="hero-section">
@@ -73,30 +94,26 @@
       <div class="hero-pills">
         <div class="badge">
           <span class="badge-dot"></span>
-          <span id="version-badge">v2.1.0 &bull; Open Source</span>
+          <span id="version-badge" data-i18n="common.version_badge"></span>
         </div>
 
-        <div class="badge badge-metric" id="downloads-badge" hidden
-          title="Total GitHub release downloads for this version">
+        <div class="badge badge-metric" id="downloads-badge" hidden data-i18n-title="hero.downloads_badge_title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
             stroke-linejoin="round" aria-hidden="true">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          <span id="version-downloads-count">0 downloads</span>
+          <span id="version-downloads-count"></span>
         </div>
       </div>
 
       <h1>FallByte</h1>
-      <p class="subtitle">
-        A fast, local-first media toolkit to compress, convert, resize, downscale, extract, and normalize videos,
-        images, and audio. No cloud uploads, no limits, and complete privacy.
-      </p>
+      <p class="subtitle" data-i18n="hero.subtitle"></p>
 
       <nav class="hero-actions" aria-label="Primary actions">
         <a href="downloads/" class="cta-primary" id="nav-downloads">
-          <span>Download Now</span>
+          <span data-i18n="hero.cta_download"></span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
             stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -111,7 +128,7 @@
             <path
               d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
           </svg>
-          <span>GitHub</span>
+          <span data-i18n="hero.cta_github"></span>
           <span class="star-pill" id="github-stars" hidden></span>
         </a>
       </nav>
@@ -120,9 +137,9 @@
     <!-- App Screenshot Showcase -->
     <div class="showcase-wrapper">
       <div class="screenshot-container" id="screenshot-container">
-        <img id="app-screenshot" src="" alt="FallByte Interface" />
+        <img id="app-screenshot" src="" data-i18n-alt="hero.screenshot_alt" alt="FallByte Interface" />
         <div class="screenshot-placeholder" id="screenshot-placeholder">
-          <span>Add your screenshot to <code>screenshots/preview.png</code></span>
+          <span data-i18n-html="hero.screenshot_placeholder"></span>
         </div>
       </div>
 
@@ -132,11 +149,12 @@
   </header>
 
   <footer>
-    <span>Built by <a href="https://github.com/brunothinker" target="_blank" rel="noopener noreferrer">Bruno
-        Thinker</a></span>
+    <span><span data-i18n="common.footer_built_by"></span> <a href="https://github.com/brunothinker" target="_blank"
+        rel="noopener noreferrer">Bruno Thinker</a></span>
   </footer>
 
   <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/main.js"></script>
 
 </body>

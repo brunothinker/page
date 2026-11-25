@@ -1,0 +1,71 @@
+{
+    "meta": {
+        "home_title": "FallByte — 미디어를 변환하세요. 프라이버시는 그대로.",
+        "home_description": "미디어를 변환하세요. 프라이버시는 그대로. 이미지, 동영상, 오디오를 위한 빠르고 가벼운 오프라인 미디어 툴킷입니다.",
+        "downloads_title": "다운로드 — FallByte",
+        "downloads_description": "단계별 설치 가이드와 함께 Windows(.exe) 및 Linux(.DEB, .RPM, .AppImage)용 FallByte를 다운로드하세요."
+    },
+    "common": {
+        "version_badge": "v{version} • 오픈 소스",
+        "footer_built_by": "제작:",
+        "copied": "복사됨!",
+        "copy_command": "명령어 복사",
+        "copy_failed": "복사 실패",
+        "for_you": "추천"
+    },
+    "hero": {
+        "downloads_badge_title": "이 버전의 전체 GitHub 릴리스 다운로드 수",
+        "downloads_count_singular": "{count}회 다운로드 (v{version})",
+        "downloads_count_plural": "{count}회 다운로드 (v{version})",
+        "subtitle": "미디어를 변환하세요. 프라이버시는 그대로. 이미지, 동영상, 오디오를 위한 빠르고 가벼운 오프라인 미디어 툴킷입니다.",
+        "cta_download": "지금 다운로드",
+        "cta_github": "GitHub",
+        "screenshot_alt": "FallByte 인터페이스",
+        "screenshot_main_label": "메인 화면",
+        "screenshot_placeholder": "<code>screenshots/preview.png</code> 경로에 스크린샷을 추가하세요"
+    },
+    "downloads": {
+        "back_home": "홈으로 돌아가기",
+        "title": "다운로드",
+        "subtitle": "운영체제를 선택하여 최신 릴리스(<span id=\"version-badge\">v{version} &bull; 오픈 소스</span>)를 다운로드하고 설치 단계를 확인하세요.",
+        "labels": {
+            "windows": "Windows 설치 프로그램 다운로드 (v{version})",
+            "deb": ".DEB 패키지 다운로드 (v{version})",
+            "rpm": ".RPM 패키지 다운로드 (v{version})",
+            "appimage": ".AppImage 바이너리 다운로드 (v{version})"
+        },
+        "os": {
+            "debian_title": "Ubuntu / Debian",
+            "debian_desc": "Ubuntu, Debian, Pop!_OS, Linux Mint (.DEB)",
+            "fedora_title": "Fedora / RedHat",
+            "fedora_desc": "Fedora, RHEL, openSUSE, Rocky Linux (.RPM)",
+            "appimage_title": "포터블 Linux",
+            "appimage_desc": "Arch, Manjaro, SteamOS 및 기타 배포판 (.AppImage)",
+            "windows_title": "Windows",
+            "windows_desc": "Windows 10 및 11 (64비트) • 설치 프로그램 (.exe)"
+        },
+        "guides": {
+            "opt1_gui": "옵션 1: 그래픽 소프트웨어 센터",
+            "opt1_file_manager": "옵션 1: 파일 관리자 (설치 불필요)",
+            "opt2_terminal": "옵션 2: 터미널 (다운로드 및 설치)",
+            "opt2_terminal_run": "옵션 2: 터미널 (다운로드 및 실행)",
+            "quick_install": "빠른 설치",
+            "deb_step1": "위 버튼을 사용하여 <code>.deb</code> 패키지를 다운로드합니다.",
+            "deb_step2": "파일 관리자를 열고 <strong>다운로드</strong> 폴더로 이동한 뒤 <code data-filename=\"deb\">{filename}</code>을(를) 더블클릭합니다.",
+            "deb_step3": "시스템의 소프트웨어 센터(App Center / GDebi)가 자동으로 열립니다 &mdash; <strong>설치</strong>를 클릭하고 비밀번호를 입력하세요.",
+            "rpm_step1": "위 버튼을 사용하여 <code>.rpm</code> 패키지를 다운로드합니다.",
+            "rpm_step2": "<strong>파일</strong>을 열고 <strong>다운로드</strong> 폴더로 이동한 뒤 <code data-filename=\"rpm\">{filename}</code>을(를) 더블클릭합니다.",
+            "rpm_step3": "GNOME Software / KDE Discover에서 패키지 페이지가 열립니다 &mdash; <strong>설치</strong>를 클릭하여 설정을 완료하세요.",
+            "appimage_step1": "<code data-filename=\"appimage\">{filename}</code>을(를) 다운로드합니다.",
+            "appimage_step2": "파일을 마우스 오른쪽 버튼으로 클릭 &rarr; <strong>속성</strong> &rarr; <strong>권한</strong>에서 <em>파일을 프로그램으로 실행 허용</em>을 활성화합니다.",
+            "appimage_step3": "AppImage 파일을 더블클릭하면 FallByte가 즉시 실행됩니다.",
+            "appimage_curl_comment": "# curl이 설치되어 있는지 확인하세요 (예: sudo pacman -Syu --needed curl)",
+            "win_step1": "<code data-filename=\"windows\">{filename}</code>을(를) 다운로드하고 더블클릭하여 설치 마법사를 실행합니다.",
+            "win_step2": "화면의 안내에 따라 FallByte 설치를 완료하세요.",
+            "smartscreen_title": "Windows Smart App Control 및 SmartScreen 안내",
+            "smartscreen_p1": "FallByte는 유료 상용 EV 코드 서명 인증서가 없는 무료 독립 오픈 소스 프로젝트이므로, Windows 11의 <strong>Smart App Control</strong>이 설치 프로그램 실행을 차단할 수 있습니다(또는 SmartScreen에 <em>\"Windows의 PC 보호\"</em> 메시지가 표시될 수 있습니다).",
+            "smartscreen_p2": "계속 진행하려면: SmartScreen이 나타나면 <strong>추가 정보</strong> &rarr; <strong>실행</strong>을 클릭하세요. Windows 11에서 <strong>Smart App Control</strong>이 차단하는 경우 아래 바로가기를 통해 <strong>Smart App Control 설정</strong>을 열고 <strong>끔</strong>으로 전환하세요.",
+            "smartscreen_btn": "Smart App Control 설정 열기"
+        }
+    }
+}
