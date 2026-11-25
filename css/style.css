@@ -247,7 +247,7 @@ p.subtitle {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #070b14;
+  filter: drop-shadow(0 20px 35px rgba(0, 0, 0, 0.75));
 }
 
 .screenshot-container img {

@@ -1,4 +1,4 @@
-const VERSION = "2.1.0";
+const VERSION = "2.2.0";
 const REPO_OWNER = "brunothinker";
 const REPO_NAME = "FallByte";
 const REPO_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}`;
