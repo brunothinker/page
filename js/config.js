@@ -9,16 +9,16 @@ const CONFIG = {
     repoOwner: "brunothinker",
     repoName: "FallByte",
     files: {
-        windows: `FallByte_${VERSION}_Windows_x64.exe`,
+        windows: `fallbyte_${VERSION}_x64_installer.exe`,
         deb: `fallbyte_${VERSION}_amd64.deb`,
-        rpm: `fallbyte-${VERSION}-1.x86_64.rpm`,
-        appImage: `FallByte-${VERSION}-x86_64.AppImage`
+        rpm: `fallbyte_${VERSION}_x86_64.rpm`,
+        appImage: `fallbyte_${VERSION}_x86_64.AppImage`
     },
     urls: {
-        windows: `https://github.com/brunothinker/FallByte/releases/download/v${VERSION}/FallByte_${VERSION}_Windows_x64.exe`,
+        windows: `https://github.com/brunothinker/FallByte/releases/download/v${VERSION}/fallbyte_${VERSION}_x64_installer.exe`,
         deb: `https://github.com/brunothinker/FallByte/releases/download/v${VERSION}/fallbyte_${VERSION}_amd64.deb`,
-        rpm: `https://github.com/brunothinker/FallByte/releases/download/v${VERSION}/fallbyte-${VERSION}-1.x86_64.rpm`,
-        appImage: `https://github.com/brunothinker/FallByte/releases/download/v${VERSION}/FallByte-${VERSION}-x86_64.AppImage`
+        rpm: `https://github.com/brunothinker/FallByte/releases/download/v${VERSION}/fallbyte_${VERSION}_x86_64.rpm`,
+        appImage: `https://github.com/brunothinker/FallByte/releases/download/v${VERSION}/fallbyte_${VERSION}_x86_64.AppImage`
     },
     icons: {
         windows: "../icons/windows.svg",
