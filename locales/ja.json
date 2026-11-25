@@ -15,8 +15,8 @@
   },
   "hero": {
     "downloads_badge_title": "このバージョンの GitHub リリース総ダウンロード数",
-    "downloads_count_singular": "{count} ダウンロード (v{version})",
-    "downloads_count_plural": "{count} ダウンロード (v{version})",
+    "downloads_count_singular": "{count} ダウンロード",
+    "downloads_count_plural": "{count} ダウンロード",
     "subtitle": "メディアを変換。プライバシーはそのまま。画像・動画・音声に対応した高速・軽量・オフラインのメディアツールキット。",
     "cta_download": "今すぐダウンロード",
     "cta_github": "GitHub",
@@ -27,7 +27,7 @@
   "downloads": {
     "back_home": "ホームに戻る",
     "title": "ダウンロード",
-    "subtitle": "お使いの OS を選択して最新リリース (<span id=\"version-badge\">v{version} &bull; オープンソース</span>) をダウンロードし、インストール手順を確認してください。",
+    "subtitle": "お使いの OS を選択して最新リリースをダウンロードし、インストール手順を確認してください。",
     "labels": {
       "windows": "Windows インストーラーをダウンロード (v{version})",
       "deb": ".DEB パッケージをダウンロード (v{version})",

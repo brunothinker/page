@@ -15,8 +15,8 @@
     },
     "hero": {
         "downloads_badge_title": "Total de descargas en GitHub para esta versión",
-        "downloads_count_singular": "{count} descarga (v{version})",
-        "downloads_count_plural": "{count} descargas (v{version})",
+        "downloads_count_singular": "{count} descarga",
+        "downloads_count_plural": "{count} descargas",
         "subtitle": "Transforma tus archivos multimedia. Mantén tu privacidad. Un kit de herramientas rápido, ligero y sin conexión para imágenes, videos y audio.",
         "cta_download": "Descargar Ahora",
         "cta_github": "GitHub",
@@ -27,7 +27,7 @@
     "downloads": {
         "back_home": "Volver al Inicio",
         "title": "Descargas",
-        "subtitle": "Selecciona tu sistema operativo para descargar la última versión (<span id=\"version-badge\">v{version} &bull; Código Abierto</span>) y ver los pasos de instalación.",
+        "subtitle": "Selecciona tu sistema operativo para descargar la última versión y ver los pasos de instalación.",
         "labels": {
             "windows": "Descargar Instalador para Windows (v{version})",
             "deb": "Descargar Paquete .DEB (v{version})",

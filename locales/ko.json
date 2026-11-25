@@ -15,8 +15,8 @@
     },
     "hero": {
         "downloads_badge_title": "이 버전의 전체 GitHub 릴리스 다운로드 수",
-        "downloads_count_singular": "{count}회 다운로드 (v{version})",
-        "downloads_count_plural": "{count}회 다운로드 (v{version})",
+        "downloads_count_singular": "{count}회 다운로드",
+        "downloads_count_plural": "{count}회 다운로드",
         "subtitle": "미디어를 변환하세요. 프라이버시는 그대로. 이미지, 동영상, 오디오를 위한 빠르고 가벼운 오프라인 미디어 툴킷입니다.",
         "cta_download": "지금 다운로드",
         "cta_github": "GitHub",
@@ -27,7 +27,7 @@
     "downloads": {
         "back_home": "홈으로 돌아가기",
         "title": "다운로드",
-        "subtitle": "운영체제를 선택하여 최신 릴리스(<span id=\"version-badge\">v{version} &bull; 오픈 소스</span>)를 다운로드하고 설치 단계를 확인하세요.",
+        "subtitle": "운영체제를 선택하여 최신 릴리스를 다운로드하고 설치 단계를 확인하세요.",
         "labels": {
             "windows": "Windows 설치 프로그램 다운로드 (v{version})",
             "deb": ".DEB 패키지 다운로드 (v{version})",

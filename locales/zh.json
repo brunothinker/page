@@ -15,8 +15,8 @@
     },
     "hero": {
         "downloads_badge_title": "此版本在 GitHub 上的总下载量",
-        "downloads_count_singular": "{count} 次下载 (v{version})",
-        "downloads_count_plural": "{count} 次下载 (v{version})",
+        "downloads_count_singular": "{count} 次下载",
+        "downloads_count_plural": "{count} 次下载",
         "subtitle": "转换你的媒体文件，守护你的隐私。一款快速、轻量且完全离线的图像、视频和音频处理工具套件。",
         "cta_download": "立即下载",
         "cta_github": "GitHub",
@@ -27,7 +27,7 @@
     "downloads": {
         "back_home": "返回首页",
         "title": "下载",
-        "subtitle": "选择您的操作系统以下载最新版本 (<span id=\"version-badge\">v{version} &bull; 开源软件</span>) 并查看安装步骤。",
+        "subtitle": "选择您的操作系统以下载最新版本并查看安装步骤。",
         "labels": {
             "windows": "下载 Windows 安装程序 (v{version})",
             "deb": "下载 .DEB 安装包 (v{version})",

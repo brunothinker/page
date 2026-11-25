@@ -15,8 +15,8 @@
     },
     "hero": {
         "downloads_badge_title": "Nombre total de téléchargements GitHub pour cette version",
-        "downloads_count_singular": "{count} téléchargement (v{version})",
-        "downloads_count_plural": "{count} téléchargements (v{version})",
+        "downloads_count_singular": "{count} téléchargement",
+        "downloads_count_plural": "{count} téléchargements",
         "subtitle": "Transformez vos médias. Préservez votre vie privée. Une boîte à outils multimédia rapide, légère et hors ligne pour images, vidéos et audio.",
         "cta_download": "Télécharger",
         "cta_github": "GitHub",
@@ -27,7 +27,7 @@
     "downloads": {
         "back_home": "Retour à l'accueil",
         "title": "Téléchargements",
-        "subtitle": "Sélectionnez votre système d'exploitation pour télécharger la dernière version (<span id=\"version-badge\">v{version} &bull; Open Source</span>) et consulter les étapes d'installation.",
+        "subtitle": "Sélectionnez votre système d'exploitation pour télécharger la dernière version et consulter les étapes d'installation.",
         "labels": {
             "windows": "Télécharger l'installateur Windows (v{version})",
             "deb": "Télécharger le paquet .DEB (v{version})",

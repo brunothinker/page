@@ -15,8 +15,8 @@
     },
     "hero": {
         "downloads_badge_title": "Total GitHub release downloads for this version",
-        "downloads_count_singular": "{count} download (v{version})",
-        "downloads_count_plural": "{count} downloads (v{version})",
+        "downloads_count_singular": "{count} download",
+        "downloads_count_plural": "{count} downloads",
         "subtitle": "Transform your media. Keep your privacy. A fast, lightweight, and offline media toolkit for images, videos, and audio.",
         "cta_download": "Download Now",
         "cta_github": "GitHub",
@@ -27,7 +27,7 @@
     "downloads": {
         "back_home": "Back to Home",
         "title": "Downloads",
-        "subtitle": "Select your operating system to download the latest release (<span id=\"version-badge\">v{version} &bull; Open Source</span>) and view installation steps.",
+        "subtitle": "Select your operating system to download the latest release and view installation steps.",
         "labels": {
             "windows": "Download Windows Installer (v{version})",
             "deb": "Download .DEB Package (v{version})",

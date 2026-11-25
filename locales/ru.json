@@ -15,8 +15,8 @@
     },
     "hero": {
         "downloads_badge_title": "Всего загрузок релиза на GitHub для этой версии",
-        "downloads_count_singular": "{count} загрузка (v{version})",
-        "downloads_count_plural": "{count} загрузок (v{version})",
+        "downloads_count_singular": "{count} загрузка",
+        "downloads_count_plural": "{count} загрузок",
         "subtitle": "Преобразуйте медиафайлы. Сохраняйте приватность. Быстрый, лёгкий и автономный набор инструментов для изображений, видео и аудио.",
         "cta_download": "Скачать",
         "cta_github": "GitHub",
@@ -27,7 +27,7 @@
     "downloads": {
         "back_home": "На главную",
         "title": "Загрузки",
-        "subtitle": "Выберите вашу операционную систему, чтобы скачать последнюю версию (<span id=\"version-badge\">v{version} &bull; Открытый исходный код</span>) и посмотреть инструкцию по установке.",
+        "subtitle": "Выберите вашу операционную систему, чтобы скачать последнюю версию и посмотреть инструкцию по установке.",
         "labels": {
             "windows": "Скачать установщик Windows (v{version})",
             "deb": "Скачать пакет .DEB (v{version})",

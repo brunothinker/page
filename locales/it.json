@@ -15,8 +15,8 @@
     },
     "hero": {
         "downloads_badge_title": "Download totali su GitHub per questa versione",
-        "downloads_count_singular": "{count} download (v{version})",
-        "downloads_count_plural": "{count} download (v{version})",
+        "downloads_count_singular": "{count} download",
+        "downloads_count_plural": "{count} download",
         "subtitle": "Trasforma i tuoi file multimediali. Proteggi la tua privacy. Un toolkit multimediale veloce, leggero e offline per immagini, video e audio.",
         "cta_download": "Scarica Ora",
         "cta_github": "GitHub",
@@ -27,7 +27,7 @@
     "downloads": {
         "back_home": "Torna alla Home",
         "title": "Download",
-        "subtitle": "Seleziona il tuo sistema operativo per scaricare l'ultima versione (<span id=\"version-badge\">v{version} &bull; Open Source</span>) e visualizzare i passaggi di installazione.",
+        "subtitle": "Seleziona il tuo sistema operativo per scaricare l'ultima versione e visualizzare i passaggi di installazione.",
         "labels": {
             "windows": "Scarica Installer per Windows (v{version})",
             "deb": "Scarica Pacchetto .DEB (v{version})",
