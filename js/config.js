@@ -2,7 +2,7 @@
  * Central application configuration.
  * Update VERSION to automatically propagate version numbers across all download links and commands.
  */
-const VERSION = "2.2.0";
+const VERSION = "2.3.0";
 
 const CONFIG = {
     version: VERSION,
