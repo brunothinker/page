@@ -20,7 +20,13 @@
     <meta property="og:url" content="https://fallbyte.brunothinker.workers.dev/downloads/" />
     <meta property="og:image" content="https://fallbyte.brunothinker.workers.dev/icons/fallbyte_logo.png" />
 
-    <link rel="stylesheet" href="../css/style.css" />
+    <script>
+    if (window.location.hostname === "brunothinker.github.io") {
+      const newPath = window.location.pathname.replace(/^\/page/, "") || "/";
+      window.location.replace("https://fallbyte.brunothinker.workers.dev" + newPath + window.location.search);
+    }
+  </script>
+  <link rel="stylesheet" href="../css/style.css" />
 </head>
 
 <body data-page="downloads">

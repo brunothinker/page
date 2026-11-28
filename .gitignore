@@ -1,0 +1,7 @@
+repomix-output.*
+.repomix/
+
+# Repomix artifacts
+repomix-output.*
+.repomix/
+repomix.config.json

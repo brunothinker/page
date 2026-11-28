@@ -46,7 +46,7 @@
         "description": "Transform your media. Keep your privacy. A fast, lightweight, and offline media toolkit for images, videos, and audio.",
         "url": "https://fallbyte.brunothinker.workers.dev/",
         "downloadUrl": "https://fallbyte.brunothinker.workers.dev/downloads/",
-        "softwareVersion": "2.2.0",
+        "softwareVersion": "2.3.0",
         "license": "https://www.gnu.org/licenses/gpl-3.0.html",
         "sameAs": [
           "https://github.com/brunothinker/FallByte"
@@ -61,6 +61,12 @@
   }
   </script>
 
+  <script>
+    if (window.location.hostname === "brunothinker.github.io") {
+      const newPath = window.location.pathname.replace(/^\/page/, "") || "/";
+      window.location.replace("https://fallbyte.brunothinker.workers.dev" + newPath + window.location.search);
+    }
+  </script>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 
